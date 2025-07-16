@@ -1,4 +1,5 @@
 import React from 'react';
+import { NavLink } from 'react-router-dom';
 import '../../styles/layout.css';
 
 export const Footer = () => {
@@ -13,11 +14,11 @@ export const Footer = () => {
         </div>
 
         <div className="footer-links">
-          <a href="#">Best Sellers</a>
-          <a href="#">Gift Ideas</a>
-          <a href="#">New Releases</a>
-          <a href="#">Today's Deals</a>
-          <a href="#">Customer Service</a>
+          <NavLink to="#">Best Sellers</NavLink>
+          <NavLink to="#">Gift Ideas</NavLink>
+          <NavLink to="#">New Releases</NavLink>
+          <NavLink to="#">Today's Deals</NavLink>
+          <NavLink to="#">Customer Service</NavLink>
         </div>
 
         <p className="footer-help">Help Line Number: +1 1800 1200 1200</p>
