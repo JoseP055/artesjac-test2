@@ -1,5 +1,4 @@
 import React from 'react';
-import { Navbar } from '../components/layout/Navbar';
 import cuadroImg from '../assets/images/cuadro.jpg';
 import bolsoImg from '../assets/images/bolso.png';
 import collarImg from '../assets/images/collar.jpg';

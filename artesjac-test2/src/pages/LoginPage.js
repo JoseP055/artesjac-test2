@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import '../styles/variables.css';
 
 
@@ -62,7 +62,7 @@ export const LoginPage = () => {
                     </div>
 
                     <div className="form-options">
-                        <a href="/recuperar">¿Olvidaste tu contraseña?</a>
+                        <NavLink to="/recuperar">¿Olvidaste tu contraseña?</NavLink>
                     </div>
 
                     <button type="submit" disabled={loading} className="login-button">
