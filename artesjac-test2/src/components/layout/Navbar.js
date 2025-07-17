@@ -71,7 +71,7 @@ export const Navbar = () => {
                     </div>
 
                     <div className="navbar-user">
-                        <NavLink to="#">
+                        <NavLink to="/cart">
                             <i className="fa fa-shopping-cart"></i> <span>Cart</span>
                         </NavLink>
                         <NavLink to="#">

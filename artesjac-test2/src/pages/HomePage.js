@@ -1,5 +1,8 @@
 import React from 'react';
 import { Navbar } from '../components/layout/Navbar';
+import cuadroImg from '../assets/images/cuadro.jpg';
+import bolsoImg from '../assets/images/bolso.png';
+import collarImg from '../assets/images/collar.jpg';
 import '../styles/variables.css';
 
 export const HomePage = () => {
@@ -24,22 +27,22 @@ export const HomePage = () => {
           </div>
         </section>
 
-        {/* Productos destacados */}
-        <section className="home-featured">
+        {/* Productos destacados - AGREGAMOS EL ID AQUÍ */}
+        <section id="productos-destacados" className="home-featured">
           <h2>Productos Destacados</h2>
           <div className="product-grid">
             <div className="product-card">
-              <div className="product-image-sim"></div>
+              <img src={collarImg} alt="Collar artesanal" className="product-image" />
               <h3>Collar artesanal</h3>
               <p>₡12.000</p>
             </div>
             <div className="product-card">
-              <div className="product-image-sim"></div>
+              <img src={bolsoImg} alt="Bolso tejido" className="product-image" />
               <h3>Bolso tejido</h3>
               <p>₡18.500</p>
             </div>
             <div className="product-card">
-              <div className="product-image-sim"></div>
+              <img src={cuadroImg} alt="Cuadro colorido" className="product-image" />
               <h3>Cuadro colorido</h3>
               <p>₡22.000</p>
             </div>
