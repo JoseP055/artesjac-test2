@@ -21,11 +21,11 @@ export const Navbar = () => {
             {/* Top Links */}
             <div className="navbar-top">
                 <div className="navbar-top-links">
-                    <NavLink to="#">Best Sellers</NavLink>
-                    <NavLink to="#">Gift Ideas</NavLink>
-                    <NavLink to="#">New Releases</NavLink>
-                    <NavLink to="#">Today's Deals</NavLink>
-                    <NavLink to="#">Customer Service</NavLink>
+                    <NavLink to="#">Featured Art</NavLink>
+                    <NavLink to="#">Craft Ideas</NavLink>
+                    <NavLink to="#">New Arrivals</NavLink>
+                    <NavLink to="#">Special Offers</NavLink>
+                    <NavLink to="#">Help Center</NavLink>
                 </div>
             </div>
 
@@ -34,24 +34,24 @@ export const Navbar = () => {
                 {/* Navigation Links */}
                 <nav className="navbar-links">
                     <NavLink to="/">Home</NavLink>
-                    <NavLink to="/fashion">Fashion</NavLink>
-                    <NavLink to="/electronic">Electronic</NavLink>
-                    <NavLink to="/jewellery">Jewellery</NavLink>
+                    <NavLink to="/textile">Textile</NavLink>
+                    <NavLink to="/art">Handmade Art</NavLink>
+                    <NavLink to="/digital-art">Digital Art</NavLink>
                 </nav>
 
                 {/* Dropdown categories */}
                 <div className="navbar-dropdown">
                     <button className="dropdown-button">All Categories</button>
                     <div className="dropdown-menu">
-                        <NavLink to="#">Action</NavLink>
-                        <NavLink to="#">Another action</NavLink>
-                        <NavLink to="#">Something else</NavLink>
+                        <NavLink to="#">Paintings</NavLink>
+                        <NavLink to="#">Ceramics</NavLink>
+                        <NavLink to="#">Sculptures</NavLink>
                     </div>
                 </div>
 
                 {/* Search Bar */}
                 <div className="navbar-search">
-                    <input type="text" placeholder="Search..." />
+                    <input type="text" placeholder="Search for art or crafts..." />
                     <button>
                         <i className="fa fa-search"></i>
                     </button>
@@ -74,7 +74,7 @@ export const Navbar = () => {
                         <NavLink to="/cart">
                             <i className="fa fa-shopping-cart"></i> <span>Cart</span>
                         </NavLink>
-                        <NavLink to="#">
+                        <NavLink to="/account">
                             <i className="fa fa-user"></i> <span>Account</span>
                         </NavLink>
                     </div>

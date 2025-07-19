@@ -6,7 +6,7 @@ export const Footer = () => {
   return (
     <footer className="footer">
       <div className="footer-container">
-        <h2 className="footer-logo">Eflyer</h2>
+        <h2 className="footer-logo">ArtesJAC</h2>
 
         <div className="footer-subscribe">
           <input type="email" placeholder="Your Email" />
@@ -14,15 +14,15 @@ export const Footer = () => {
         </div>
 
         <div className="footer-links">
-          <NavLink to="#">Best Sellers</NavLink>
-          <NavLink to="#">Gift Ideas</NavLink>
-          <NavLink to="#">New Releases</NavLink>
-          <NavLink to="#">Today's Deals</NavLink>
-          <NavLink to="#">Customer Service</NavLink>
+          <NavLink to="#">Featured Art</NavLink>
+          <NavLink to="#">Craft Collections</NavLink>
+          <NavLink to="#">New Creations</NavLink>
+          <NavLink to="#">Exclusive Offers</NavLink>
+          <NavLink to="#">Support</NavLink>
         </div>
 
-        <p className="footer-help">Help Line Number: +1 1800 1200 1200</p>
-        <p className="footer-copy">© 2020 All Rights Reserved. Design by Free html Templates</p>
+        <p className="footer-help">Contact us: +506 8338 9426</p>
+        <p className="footer-copy">© 2025 ArtesJAC. All rights reserved.</p>
       </div>
     </footer>
   );
