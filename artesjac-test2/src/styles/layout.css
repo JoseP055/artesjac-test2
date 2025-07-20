@@ -1,222 +1,249 @@
 /* ==== NAVBAR ==== */
 .navbar {
+  position: fixed;               /* Cambiado de sticky a fixed */
   top: 0;
+  left: 0;
   z-index: 1000;
   background-color: #1f1f1f;
   color: white;
   width: 100%;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   font-family: Arial, sans-serif;
-}
-
-
-.navbar-top {
-    text-align: center;
-    padding: 0.5rem 0;
-    background-color: #2b2b2b;
-}
-
-.navbar-top-links a {
-    margin: 0 0.75rem;
-    color: white;
-    font-size: 0.85rem;
-    text-decoration: none;
-    transition: color 0.3s ease;
-}
-
-.navbar-top-links a:hover {
-    color: #ff5722;
-}
-
-.navbar-logo-container {
-    text-align: center;
-    padding: 1rem 0;
-}
-
-.navbar-logo {
-    height: 48px;
-}
-
-.navbar-main {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: center;
-    gap: 1rem;
-    padding: 1rem;
-    border-top: 1px solid #333;
-    border-bottom: 1px solid #333;
-}
-
-.navbar-links a {
-    margin: 0 1rem;
-    color: white;
-    text-decoration: none;
-    transition: color 0.3s ease;
-}
-
-.navbar-links a:hover {
-    color: #ff5722;
-}
-
-.navbar-dropdown {
-    position: relative;
-    display: inline-block;
-}
-
-.dropdown-button {
-    background-color: transparent;
-    border: 1px solid #fff;
-    color: white;
-    padding: 0.5rem 1rem;
-    cursor: pointer;
-    transition: border-color 0.3s ease;
-    z-index: 2;
-    position: relative;
-}
-
-.dropdown-button:hover {
-    border-color: #ff5722;
-}
-
-.navbar-dropdown:hover .dropdown-menu {
-    display: block;
-}
-
-.dropdown-menu {
-    display: none;
-    position: absolute;
-    top: calc(100% - 2px);
-    left: 0;
-    background-color: white;
-    color: black;
-    min-width: 150px;
-    border-radius: 4px;
-    overflow: hidden;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
-    z-index: 1;
-    pointer-events: auto;
-}
-
-.dropdown-menu a {
-    display: block;
-    padding: 0.5rem 1rem;
-    text-decoration: none;
-    color: black;
-    transition: background-color 0.3s ease;
-}
-
-.dropdown-menu a:hover {
-    background-color: #f0f0f0;
-}
-
-.navbar-search {
-    display: flex;
-    align-items: center;
-    border: 1px solid #fff;
-    border-radius: 4px;
-    overflow: hidden;
-}
-
-.navbar-search input {
-    padding: 0.5rem;
-    border: none;
-    outline: none;
-    color: black;
-    width: 160px;
-}
-
-.navbar-search button {
-    background-color: #ff5722;
-    color: white;
-    border: none;
-    padding: 0.5rem 0.8rem;
-    cursor: pointer;
-}
-
-.navbar-actions {
-    display: flex;
-    gap: 1.5rem;
-    align-items: center;
-}
-
-.language-selector {
-    position: relative;
-    display: inline-block;
-}
-
-.language-button {
-    background: none;
-    border: none;
-    color: white;
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-    cursor: pointer;
-    position: relative;
-    z-index: 2;
-}
-
-.language-flag {
-    height: 14px;
-}
-
-.language-selector:hover .language-menu {
-    display: block;
-}
-
-.language-menu {
-    display: none;
-    position: absolute;
-    top: calc(100% - 2px);
-    left: 0;
-    background-color: white;
-    color: black;
-    min-width: 120px;
-    border-radius: 4px;
-    overflow: hidden;
-    z-index: 1;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
-    pointer-events: auto;
-}
-
-.language-menu a {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    text-decoration: none;
-    color: black;
-    transition: background-color 0.3s ease;
-}
-
-.language-menu a:hover {
-    background-color: #f0f0f0;
-}
-
-.navbar-user a {
-    color: white;
-    text-decoration: none;
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-    font-size: 0.9rem;
-}
-
-.navbar-user a:hover {
-    color: #ff5722;
-}
-
-
-/* Se aplica dinámicamente al hacer scroll */
-.navbar.sticky {
-  position: sticky;
-  top: 0;
-  background-color: #1f1f1f;
   animation: slideDown 0.3s ease-in-out;
 }
 
-/* Animación opcional para que se vea más fino */
+body {
+  padding-top: 160px; /* Alto total del navbar para evitar solapamiento */
+}
+
+.navbar-top {
+  text-align: center;
+  padding: 0.5rem 0;
+  background-color: #2b2b2b;
+}
+
+.navbar-top-links a {
+  margin: 0 0.75rem;
+  color: white;
+  font-size: 0.85rem;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.navbar-top-links a:hover {
+  color: #ff5722;
+}
+
+.navbar-logo-container {
+  text-align: center;
+  padding: 1rem 0;
+}
+
+.navbar-logo {
+  height: 48px;
+}
+
+.navbar-main {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border-top: 1px solid #333;
+  border-bottom: 1px solid #333;
+}
+
+.navbar-links a {
+  margin: 0 1rem;
+  color: white;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.navbar-links a:hover {
+  color: #ff5722;
+}
+
+.navbar-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-button {
+  background-color: transparent;
+  border: 1px solid #fff;
+  color: white;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: border-color 0.3s ease;
+  z-index: 2;
+  position: relative;
+}
+
+.dropdown-button:hover {
+  border-color: #ff5722;
+}
+
+.navbar-dropdown:hover .dropdown-menu {
+  display: block;
+}
+
+.dropdown-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% - 2px);
+  left: 0;
+  background-color: white;
+  color: black;
+  min-width: 150px;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  z-index: 1;
+  pointer-events: auto;
+}
+
+.dropdown-menu a {
+  display: block;
+  padding: 0.5rem 1rem;
+  text-decoration: none;
+  color: black;
+  transition: background-color 0.3s ease;
+}
+
+.dropdown-menu a:hover {
+  background-color: #f0f0f0;
+}
+
+.navbar-search {
+  display: flex;
+  align-items: center;
+  border: 1px solid #fff;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.navbar-search input {
+  padding: 0.5rem;
+  border: none;
+  outline: none;
+  color: black;
+  width: 160px;
+}
+
+.navbar-search button {
+  background-color: #ff5722;
+  color: white;
+  border: none;
+  padding: 0.5rem 0.8rem;
+  cursor: pointer;
+}
+
+.navbar-actions {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.language-selector {
+  position: relative;
+  display: inline-block;
+}
+
+.language-button {
+  background: none;
+  border: none;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  cursor: pointer;
+  position: relative;
+  z-index: 2;
+}
+
+.language-flag {
+  height: 14px;
+}
+
+.language-selector:hover .language-menu {
+  display: block;
+}
+
+.language-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% - 2px);
+  left: 0;
+  background-color: white;
+  color: black;
+  min-width: 120px;
+  border-radius: 4px;
+  overflow: hidden;
+  z-index: 1;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  pointer-events: auto;
+}
+
+.language-menu a {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  text-decoration: none;
+  color: black;
+  transition: background-color 0.3s ease;
+}
+
+.language-menu a:hover {
+  background-color: #f0f0f0;
+}
+
+.navbar-user a {
+  color: white;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+}
+
+.navbar-user a:hover {
+  color: #ff5722;
+}
+
+/* ==== AUTH (Login / Register) ==== */
+.navbar-auth {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.auth-link {
+  color: white;
+  background-color: #ff5722;
+  padding: 6px 12px;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: background-color 0.2s ease-in-out;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.auth-link:hover {
+  background-color: #e64a19;
+}
+
+.auth-divider {
+  color: #ccc;
+  font-weight: bold;
+  margin: 0 4px;
+}
+
+/* ==== Animación del navbar ==== */
 @keyframes slideDown {
   from {
     transform: translateY(-100%);
@@ -228,133 +255,133 @@
 
 /* ==== FOOTER ==== */
 .footer {
-    background-color: #1f1f1f;
-    padding: 2rem 1rem;
-    width: 100%;
+  background-color: #1f1f1f;
+  padding: 2rem 1rem;
+  width: 100%;
 }
 
 .footer-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    text-align: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  text-align: center;
 }
 
 .footer-logo {
-    font-size: 2rem;
-    font-weight: bold;
-    color: white;
-    margin-bottom: 1rem;
-    transition: transform 0.3s ease;
+  font-size: 2rem;
+  font-weight: bold;
+  color: white;
+  margin-bottom: 1rem;
+  transition: transform 0.3s ease;
 }
 
 .footer-logo:hover {
-    transform: scale(1.05);
-    color: #ff5722;
+  transform: scale(1.05);
+  color: #ff5722;
 }
 
 .footer-subscribe {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: center;
-    gap: 0.7rem;
-    margin-bottom: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.7rem;
+  margin-bottom: 1.5rem;
 }
 
 .footer-subscribe input[type="email"] {
-    padding: 0.5rem;
-    border: none;
-    border-bottom: 1px solid #ffffff;
-    background-color: transparent;
-    color: white;
-    outline: none;
-    font-size: 0.9rem;
-    width: 220px;
-    transition: border-color 0.3s ease;
+  padding: 0.5rem;
+  border: none;
+  border-bottom: 1px solid #ffffff;
+  background-color: transparent;
+  color: white;
+  outline: none;
+  font-size: 0.9rem;
+  width: 220px;
+  transition: border-color 0.3s ease;
 }
 
 .footer-subscribe input[type="email"]:focus {
-    border-color: #ff5722;
+  border-color: #ff5722;
 }
 
 .footer-subscribe button {
-    background-color: transparent;
-    border: 1px solid #ff5722;
-    color: #ff5722;
-    font-weight: bold;
-    cursor: pointer;
-    font-size: 0.9rem;
-    padding: 0.4rem 0.8rem;
-    border-radius: 4px;
-    transition: all 0.3s ease;
+  background-color: transparent;
+  border: 1px solid #ff5722;
+  color: #ff5722;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  transition: all 0.3s ease;
 }
 
 .footer-subscribe button:hover {
-    background-color: #ff5722;
-    color: white;
+  background-color: #ff5722;
+  color: white;
 }
 
 .footer-links {
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 1rem;
-    margin-bottom: 1rem;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
 
 .footer-links a {
-    color: white;
-    font-size: 0.85rem;
-    transition: color 0.3s ease;
+  color: white;
+  font-size: 0.85rem;
+  transition: color 0.3s ease;
 }
 
 .footer-links a:hover {
-    color: #ff5722;
+  color: #ff5722;
 }
 
 .footer-help {
-    font-size: 0.9rem;
-    margin-bottom: 0.5rem;
-    color: #ccc;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  color: #ccc;
 }
 
 .footer-copy {
-    font-size: 0.8rem;
-    color: #aaa;
+  font-size: 0.8rem;
+  color: #aaa;
 }
-
 
 /* ==== Full Screen Banner ==== */
 .full-screen-banner {
-    width: 100%;
-    height: 25vh;
-    /* 100% de la altura visible del navegador */
-    overflow: hidden;
-    position: relative;
+  width: 100%;
+  height: 25vh;
+  overflow: hidden;
+  position: relative;
+}
+.full-screen-banner {
+  margin-top: 150px; /* ajustá al alto real del navbar */
 }
 
 .banner-image {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    /* Asegura que cubra todo sin deformarse feo */
-    display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 /* ==== RESPONSIVE ==== */
 @media (max-width: 768px) {
-    .navbar-main {
-        flex-direction: column;
-        gap: 1rem;
-    }
+  .navbar-main {
+    flex-direction: column;
+    gap: 1rem;
+  }
 
-    .footer-subscribe {
-        flex-direction: column;
-        gap: 0.75rem;
-    }
+  .footer-subscribe {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
 
-    .footer-subscribe input[type="email"] {
-        width: 100%;
-        max-width: 300px;
-    }
+  .footer-subscribe input[type="email"] {
+    width: 100%;
+    max-width: 300px;
+  }
 }

@@ -57,8 +57,9 @@ export const Navbar = () => {
                     </button>
                 </div>
 
-                {/* Language and Cart */}
+                {/* Language, Cart & Auth */}
                 <div className="navbar-actions">
+                    {/* Language */}
                     <div className="language-selector">
                         <button className="language-button">
                             <img src="/images/flag-uk.png" className="language-flag" alt="EN" /> English <i className="fa fa-angle-down"></i>
@@ -70,12 +71,21 @@ export const Navbar = () => {
                         </div>
                     </div>
 
-                    <div className="navbar-user">
+                    {/* Cart */}
+                    <div className="navbar-cart">
                         <NavLink to="/cart">
                             <i className="fa fa-shopping-cart"></i> <span>Cart</span>
                         </NavLink>
-                        <NavLink to="/account">
-                            <i className="fa fa-user"></i> <span>Account</span>
+                    </div>
+
+                    {/* Login/Register Auth */}
+                    <div className="navbar-auth">
+                        <NavLink to="/login" className="auth-link">
+                            <i className="fa fa-sign-in-alt"></i> Iniciar Sesión
+                        </NavLink>
+                        <span className="auth-divider">|</span>
+                        <NavLink to="/register" className="auth-link">
+                            <i className="fa fa-user-plus"></i> Registrarse
                         </NavLink>
                     </div>
                 </div>
