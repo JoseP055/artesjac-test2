@@ -14,14 +14,14 @@ export const Footer = () => {
         </div>
 
         <div className="footer-links">
-          <NavLink to="#">Featured Art</NavLink>
-          <NavLink to="#">Craft Collections</NavLink>
-          <NavLink to="#">New Creations</NavLink>
-          <NavLink to="#">Exclusive Offers</NavLink>
+          <NavLink to="/shop">Featured Art</NavLink>
+          <NavLink to="/shop">Craft Ideas</NavLink>
+          <NavLink to="/shop">New Arrivals</NavLink>
+          <NavLink to="/shop">Special Offers</NavLink>
           <NavLink to="#">Support</NavLink>
         </div>
 
-        <p className="footer-help">Contact us: +506 8338 9426</p>
+        <p className="footer-help">Contact us: +506 8888 8888</p>
         <p className="footer-copy">© 2025 ArtesJAC. All rights reserved.</p>
       </div>
     </footer>

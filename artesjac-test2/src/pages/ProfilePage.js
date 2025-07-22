@@ -20,7 +20,7 @@ export const ProfilePage = () => {
 
     const [editForm, setEditForm] = useState({ ...userInfo });
 
-    const [addresses, setAddresses] = useState([
+    const [addresses] = useState([
         {
             id: 1,
             type: 'principal',

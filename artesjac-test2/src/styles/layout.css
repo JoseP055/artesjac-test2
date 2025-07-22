@@ -32,6 +32,18 @@ body {
     transition: color 0.3s ease;
 }
 
+.logo-text{
+    font-family: Georgia, 'Times New Roman', Times, serif;
+    color: #ff5722;
+    font-size: 2rem;
+    transition: all 1.5s ease-in-out;
+}
+.logo-text:hover{
+    color: #fff;
+
+    font-size: 2.5rem;
+}
+
 .navbar-top-links a:hover {
     color: #ff5722;
 }
@@ -48,7 +60,7 @@ body {
 .navbar-main {
     display: flex;
     flex-wrap: wrap;
-    justify-content: center;
+    justify-content: space-between;
     align-items: center;
     gap: 1rem;
     padding: 1rem;

@@ -1,5 +1,6 @@
 import React from 'react';
-import '../styles/variables.css'; // Estilos personalizados (ver más abajo)
+import { Link } from 'react-router-dom';
+import '../styles/variables.css'; 
 
 export const RegisterPage = () => {
     const [userType, setUserType] = React.useState('buyer'); // 'buyer' o 'seller'
@@ -143,7 +144,7 @@ export const RegisterPage = () => {
 
                     {/* Enlace a login */}
                     <div className="register-link">
-                        <p>¿Ya tienes cuenta? <a href="/login">Inicia sesión</a></p>
+                        <p>¿Ya tienes cuenta? <Link to="/login">Inicia sesión</Link></p>
                     </div>
                 </form>
             </div>
