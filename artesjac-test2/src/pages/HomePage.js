@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import cuadroImg from '../assets/images/cuadro.jpg';
 import bolsoImg from '../assets/images/bolso.png';
 import collarImg from '../assets/images/collar.jpg';
@@ -12,7 +13,9 @@ export const HomePage = () => {
         <section className="home-hero">
           <h1>Bienvenido a ArtesJAC</h1>
           <p>Tu plataforma para descubrir y apoyar el arte local costarricense.</p>
-          <button className="home-button">Explorar la Tienda</button>
+          <Link to="/shop" >
+            <button className="home-button">Explorar la Tienda</button>
+          </Link>
         </section>
 
         {/* Categorías */}
