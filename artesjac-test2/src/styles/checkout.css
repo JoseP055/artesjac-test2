@@ -96,6 +96,7 @@
 .form-group input.error,
 .form-group select.error {
     border-color: #dc3545;
+    box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.2);
 }
 
 .form-group input::placeholder {
@@ -106,6 +107,7 @@
     color: #dc3545;
     font-size: 0.8rem;
     margin-top: 0.3rem;
+    display: block;
 }
 
 /* ==== MÉTODOS DE PAGO ==== */
@@ -129,6 +131,10 @@
 .payment-option:hover {
     border-color: #ff5722;
     background-color: rgba(255, 87, 34, 0.1);
+}
+
+.payment-option input[type="radio"]:checked + .payment-label {
+    color: #ff5722;
 }
 
 .payment-option input[type="radio"] {
@@ -235,6 +241,11 @@
     color: #fff;
 }
 
+.shipping-note {
+    margin-bottom: 0.5rem;
+    text-align: center;
+}
+
 .final-total {
     border-top: 2px solid #333;
     padding-top: 0.8rem;
@@ -254,7 +265,7 @@
     color: white;
     border: none;
     padding: 1.2rem 2rem;
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     font-weight: bold;
     border-radius: 6px;
     cursor: pointer;
@@ -291,7 +302,7 @@
     font-size: 1rem;
     border-radius: 6px;
     cursor: pointer;
-    width: 85%;
+    width: 100%;
     transition: all 0.3s ease;
     display: flex;
     align-items: center;
@@ -303,6 +314,7 @@
 .back-to-cart-btn:hover {
     background-color: #ff5722;
     color: white;
+    text-decoration: none;
 }
 
 /* ==== ANIMACIONES ==== */

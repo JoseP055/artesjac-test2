@@ -1,34 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import '../styles/checkout.css';
 
 export const CheckoutPage = () => {
     const navigate = useNavigate();
 
-    // Productos del carrito (en una app real vendría de un contexto global)
-    const [cartItems] = useState([
-        {
-            id: 1,
-            name: "Collar Artesanal de Semillas",
-            price: 12000,
-            quantity: 1,
-            artist: "María González"
-        },
-        {
-            id: 2,
-            name: "Bolso Tejido a Mano",
-            price: 18500,
-            quantity: 2,
-            artist: "Carlos Jiménez"
-        },
-        {
-            id: 3,
-            name: "Cuadro Paisaje Costarricense",
-            price: 22000,
-            quantity: 1,
-            artist: "Ana Rojas"
-        }
-    ]);
+    // Cargar productos del carrito desde localStorage
+    const [cartItems, setCartItems] = useState([]);
+    const [isLoadingCart, setIsLoadingCart] = useState(true);
+    const [countdown, setCountdown] = useState(3);
 
     // Estados para los formularios
     const [personalInfo, setPersonalInfo] = useState({
@@ -57,12 +37,81 @@ export const CheckoutPage = () => {
     const [errors, setErrors] = useState({});
     const [isProcessing, setIsProcessing] = useState(false);
 
+    // Debug: Verificar localStorage al cargar la página
+    useEffect(() => {
+        console.log('CheckoutPage montado');
+        console.log('localStorage artesjac-cart:', localStorage.getItem('artesjac-cart'));
+    }, []);
+
+    // Cargar carrito desde localStorage
+    useEffect(() => {
+        const loadCart = () => {
+            try {
+                const savedCart = localStorage.getItem('artesjac-cart');
+                console.log('Raw localStorage:', savedCart);
+                
+                if (savedCart && savedCart !== 'null' && savedCart !== '[]') {
+                    const cart = JSON.parse(savedCart);
+                    console.log('Carrito parseado:', cart);
+                    
+                    if (Array.isArray(cart) && cart.length > 0) {
+                        setCartItems(cart);
+                        console.log('Carrito cargado exitosamente:', cart.length, 'items');
+                    } else {
+                        console.log('Carrito está vacío o no es válido');
+                        setCartItems([]);
+                    }
+                } else {
+                    console.log('No hay carrito guardado o está vacío');
+                    setCartItems([]);
+                }
+            } catch (error) {
+                console.error('Error al cargar carrito:', error);
+                setCartItems([]);
+            }
+            
+            setIsLoadingCart(false);
+        };
+
+        // Pequeño delay para asegurar que el DOM esté listo
+        const timer = setTimeout(loadCart, 300);
+        return () => clearTimeout(timer);
+    }, []);
+
+    // Redirigir si el carrito está vacío SOLO después de cargar
+    useEffect(() => {
+        if (!isLoadingCart && cartItems.length === 0) {
+            console.log('Carrito vacío, iniciando cuenta regresiva...');
+            
+            // Cuenta regresiva
+            const countdownTimer = setInterval(() => {
+                setCountdown(prev => {
+                    if (prev <= 1) {
+                        clearInterval(countdownTimer);
+                        navigate('/cart');
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+
+            return () => clearInterval(countdownTimer);
+        }
+    }, [cartItems, navigate, isLoadingCart]);
+
     // Funciones para manejar cambios en los formularios
     const handlePersonalChange = (e) => {
         setPersonalInfo({
             ...personalInfo,
             [e.target.name]: e.target.value
         });
+        // Limpiar error si existe
+        if (errors[e.target.name]) {
+            setErrors(prev => ({
+                ...prev,
+                [e.target.name]: ''
+            }));
+        }
     };
 
     const handleShippingChange = (e) => {
@@ -70,6 +119,13 @@ export const CheckoutPage = () => {
             ...shippingInfo,
             [e.target.name]: e.target.value
         });
+        // Limpiar error si existe
+        if (errors[e.target.name]) {
+            setErrors(prev => ({
+                ...prev,
+                [e.target.name]: ''
+            }));
+        }
     };
 
     const handlePaymentChange = (e) => {
@@ -77,6 +133,13 @@ export const CheckoutPage = () => {
             ...paymentInfo,
             [e.target.name]: e.target.value
         });
+        // Limpiar error si existe
+        if (errors[e.target.name]) {
+            setErrors(prev => ({
+                ...prev,
+                [e.target.name]: ''
+            }));
+        }
     };
 
     // Validación de formularios
@@ -86,7 +149,11 @@ export const CheckoutPage = () => {
         // Validar información personal
         if (!personalInfo.firstName.trim()) newErrors.firstName = 'Nombre es requerido';
         if (!personalInfo.lastName.trim()) newErrors.lastName = 'Apellido es requerido';
-        if (!personalInfo.email.trim()) newErrors.email = 'Email es requerido';
+        if (!personalInfo.email.trim()) {
+            newErrors.email = 'Email es requerido';
+        } else if (!/\S+@\S+\.\S+/.test(personalInfo.email)) {
+            newErrors.email = 'Email no es válido';
+        }
         if (!personalInfo.phone.trim()) newErrors.phone = 'Teléfono es requerido';
 
         // Validar dirección
@@ -96,9 +163,21 @@ export const CheckoutPage = () => {
 
         // Validar pago (solo para tarjeta)
         if (paymentInfo.paymentMethod === 'card') {
-            if (!paymentInfo.cardNumber.trim()) newErrors.cardNumber = 'Número de tarjeta es requerido';
-            if (!paymentInfo.expiryDate.trim()) newErrors.expiryDate = 'Fecha de vencimiento es requerida';
-            if (!paymentInfo.cvv.trim()) newErrors.cvv = 'CVV es requerido';
+            if (!paymentInfo.cardNumber.trim()) {
+                newErrors.cardNumber = 'Número de tarjeta es requerido';
+            } else if (paymentInfo.cardNumber.replace(/\s/g, '').length < 13) {
+                newErrors.cardNumber = 'Número de tarjeta no es válido';
+            }
+            if (!paymentInfo.expiryDate.trim()) {
+                newErrors.expiryDate = 'Fecha de vencimiento es requerida';
+            } else if (!/^\d{2}\/\d{2}$/.test(paymentInfo.expiryDate)) {
+                newErrors.expiryDate = 'Formato debe ser MM/AA';
+            }
+            if (!paymentInfo.cvv.trim()) {
+                newErrors.cvv = 'CVV es requerido';
+            } else if (paymentInfo.cvv.length < 3) {
+                newErrors.cvv = 'CVV debe tener 3-4 dígitos';
+            }
             if (!paymentInfo.cardName.trim()) newErrors.cardName = 'Nombre en la tarjeta es requerido';
         }
 
@@ -108,18 +187,66 @@ export const CheckoutPage = () => {
 
     // Calcular totales
     const calculateSubtotal = () => {
-        return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+        return cartItems.reduce((total, item) => total + (item.numericPrice * item.quantity), 0);
     };
 
-    const shippingCost = 2500;
+    const shippingCost = calculateSubtotal() > 50000 ? 0 : 2500; // Envío gratis para compras > ₡50,000
     const tax = calculateSubtotal() * 0.13; // 13% IVA en Costa Rica
     const total = calculateSubtotal() + shippingCost + tax;
+
+    // Formatear número de tarjeta con espacios
+    const formatCardNumber = (value) => {
+        const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+        const matches = v.match(/\d{4,16}/g);
+        const match = matches && matches[0] || '';
+        const parts = [];
+        for (let i = 0, len = match.length; i < len; i += 4) {
+            parts.push(match.substring(i, i + 4));
+        }
+        if (parts.length) {
+            return parts.join(' ');
+        } else {
+            return v;
+        }
+    };
+
+    // Formatear fecha de expiración
+    const formatExpiryDate = (value) => {
+        const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+        if (v.length >= 2) {
+            return v.substring(0, 2) + '/' + v.substring(2, 4);
+        }
+        return v;
+    };
+
+    // Manejar formato de número de tarjeta
+    const handleCardNumberChange = (e) => {
+        const formatted = formatCardNumber(e.target.value);
+        setPaymentInfo({
+            ...paymentInfo,
+            cardNumber: formatted
+        });
+    };
+
+    // Manejar formato de fecha de expiración
+    const handleExpiryDateChange = (e) => {
+        const formatted = formatExpiryDate(e.target.value);
+        setPaymentInfo({
+            ...paymentInfo,
+            expiryDate: formatted
+        });
+    };
 
     // Procesar pedido
     const handlePlaceOrder = async (e) => {
         e.preventDefault();
         
         if (!validateForm()) {
+            // Hacer scroll al primer error
+            const firstError = document.querySelector('.error');
+            if (firstError) {
+                firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
             return;
         }
 
@@ -128,10 +255,132 @@ export const CheckoutPage = () => {
         // Simular procesamiento del pedido
         setTimeout(() => {
             setIsProcessing(false);
-            alert('¡Pedido realizado con éxito! Recibirás un email de confirmación.');
-            navigate('/order-confirmation');
+            const orderId = 'ORD-' + Date.now().toString().slice(-6);
+            
+            // Guardar información del pedido para la confirmación
+            const orderData = {
+                orderId,
+                personalInfo,
+                shippingInfo,
+                paymentInfo,
+                items: cartItems,
+                totals: {
+                    subtotal: calculateSubtotal(),
+                    shipping: shippingCost,
+                    tax: Math.round(tax),
+                    total: Math.round(total)
+                }
+            };
+            
+            localStorage.setItem('last-order', JSON.stringify(orderData));
+            navigate(`/order-confirmation?orderId=${orderId}`);
         }, 2000);
     };
+
+    // Mostrar loading si está cargando el carrito
+    if (isLoadingCart) {
+        return (
+            <div className="checkout-page">
+                <div className="checkout-container">
+                    <div style={{
+                        textAlign: 'center', 
+                        padding: '4rem 2rem',
+                        backgroundColor: '#1f1f1f',
+                        borderRadius: '12px',
+                        marginTop: '2rem'
+                    }}>
+                        <i className="fa fa-spinner fa-spin" style={{fontSize: '3rem', color: '#ff5722', marginBottom: '1rem'}}></i>
+                        <h2>Cargando checkout...</h2>
+                        <p>Verificando productos en el carrito</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // Mostrar mensaje si el carrito está vacío
+    if (cartItems.length === 0) {
+        return (
+            <div className="checkout-page">
+                <div className="checkout-container">
+                    <div style={{
+                        textAlign: 'center', 
+                        backgroundColor: '#1f1f1f', 
+                        padding: '4rem 2rem', 
+                        borderRadius: '12px',
+                        marginTop: '2rem'
+                    }}>
+                        <i className="fa fa-shopping-cart" style={{fontSize: '3rem', color: '#666', marginBottom: '1rem'}}></i>
+                        <h2>Tu carrito está vacío</h2>
+                        <p>No hay productos para proceder al checkout</p>
+                        
+                        <div style={{
+                            backgroundColor: '#2b2b2b',
+                            padding: '1rem',
+                            borderRadius: '8px',
+                            margin: '2rem 0',
+                            border: '1px solid #ff5722'
+                        }}>
+                            <p style={{color: '#ff5722', margin: '0 0 0.5rem 0'}}>
+                                Redirigiendo al carrito en {countdown} segundo{countdown !== 1 ? 's' : ''}...
+                            </p>
+                            <div style={{
+                                width: '100%',
+                                height: '4px',
+                                backgroundColor: '#444',
+                                borderRadius: '2px',
+                                overflow: 'hidden'
+                            }}>
+                                <div style={{
+                                    width: `${((3 - countdown) / 3) * 100}%`,
+                                    height: '100%',
+                                    backgroundColor: '#ff5722',
+                                    transition: 'width 1s ease'
+                                }}></div>
+                            </div>
+                        </div>
+
+                        <div style={{display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '2rem'}}>
+                            <Link to="/shop" style={{
+                                backgroundColor: '#ff5722',
+                                color: 'white',
+                                padding: '0.8rem 1.5rem',
+                                borderRadius: '6px',
+                                textDecoration: 'none'
+                            }}>
+                                Ir a la tienda
+                            </Link>
+                            <Link to="/cart" style={{
+                                backgroundColor: 'transparent',
+                                color: '#ff5722',
+                                border: '1px solid #ff5722',
+                                padding: '0.8rem 1.5rem',
+                                borderRadius: '6px',
+                                textDecoration: 'none'
+                            }}>
+                                Ver carrito ahora
+                            </Link>
+                        </div>
+
+                        {/* Debug info */}
+                        <div style={{
+                            marginTop: '2rem',
+                            padding: '1rem',
+                            backgroundColor: '#333',
+                            borderRadius: '6px',
+                            fontSize: '0.8rem',
+                            color: '#aaa'
+                        }}>
+                            <strong>Debug Info:</strong><br/>
+                            localStorage: {localStorage.getItem('artesjac-cart') || 'null'}<br/>
+                            cartItems.length: {cartItems.length}<br/>
+                            isLoadingCart: {isLoadingCart.toString()}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="checkout-page">
@@ -306,7 +555,7 @@ export const CheckoutPage = () => {
                                             type="text"
                                             name="cardNumber"
                                             value={paymentInfo.cardNumber}
-                                            onChange={handlePaymentChange}
+                                            onChange={handleCardNumberChange}
                                             className={errors.cardNumber ? 'error' : ''}
                                             placeholder="1234 5678 9012 3456"
                                             maxLength="19"
@@ -319,7 +568,7 @@ export const CheckoutPage = () => {
                                             type="text"
                                             name="expiryDate"
                                             value={paymentInfo.expiryDate}
-                                            onChange={handlePaymentChange}
+                                            onChange={handleExpiryDateChange}
                                             className={errors.expiryDate ? 'error' : ''}
                                             placeholder="MM/AA"
                                             maxLength="5"
@@ -372,11 +621,11 @@ export const CheckoutPage = () => {
                                 <div key={item.id} className="summary-item">
                                     <div className="item-info">
                                         <h4>{item.name}</h4>
-                                        <p>Por: {item.artist}</p>
+                                        <p>Categoría: {item.category.charAt(0).toUpperCase() + item.category.slice(1)}</p>
                                         <p>Cantidad: {item.quantity}</p>
                                     </div>
                                     <div className="item-price">
-                                        ₡{(item.price * item.quantity).toLocaleString()}
+                                        ₡{(item.numericPrice * item.quantity).toLocaleString()}
                                     </div>
                                 </div>
                             ))}
@@ -389,8 +638,21 @@ export const CheckoutPage = () => {
                             </div>
                             <div className="total-row">
                                 <span>Envío:</span>
-                                <span>₡{shippingCost.toLocaleString()}</span>
+                                <span>
+                                    {shippingCost === 0 ? (
+                                        <span style={{color: '#4caf50'}}>¡Gratis!</span>
+                                    ) : (
+                                        `₡${shippingCost.toLocaleString()}`
+                                    )}
+                                </span>
                             </div>
+                            {calculateSubtotal() < 50000 && shippingCost > 0 && (
+                                <div className="shipping-note">
+                                    <small style={{color: '#aaa', fontSize: '0.8rem'}}>
+                                        Envío gratis en compras mayores a ₡50.000
+                                    </small>
+                                </div>
+                            )}
                             <div className="total-row">
                                 <span>IVA (13%):</span>
                                 <span>₡{Math.round(tax).toLocaleString()}</span>
@@ -414,7 +676,7 @@ export const CheckoutPage = () => {
                             ) : (
                                 <>
                                     <i className="fa fa-check"></i>
-                                    Realizar Pedido
+                                    Realizar Pedido - ₡{Math.round(total).toLocaleString()}
                                 </>
                             )}
                         </button>
@@ -423,6 +685,24 @@ export const CheckoutPage = () => {
                             <i className="fa fa-arrow-left"></i>
                             Volver al Carrito
                         </Link>
+
+                        {/* Información de seguridad */}
+                        <div className="security-badges" style={{marginTop: '1rem', padding: '1rem 0', borderTop: '1px solid #333'}}>
+                            <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.8rem', color: '#aaa'}}>
+                                <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
+                                    <i className="fa fa-shield-alt" style={{color: '#4caf50'}}></i>
+                                    <span>Pago 100% seguro</span>
+                                </div>
+                                <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
+                                    <i className="fa fa-truck" style={{color: '#4caf50'}}></i>
+                                    <span>Envío a todo Costa Rica</span>
+                                </div>
+                                <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
+                                    <i className="fa fa-undo" style={{color: '#4caf50'}}></i>
+                                    <span>30 días para devoluciones</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
