@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { NavLink, Link } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import '../../styles/layout.css';
 
 export const Navbar = () => {
     const [isSticky, setIsSticky] = useState(false);
-    const [cartCount, setCartCount] = useState(0);
 
     useEffect(() => {
         const handleScroll = () => {
@@ -17,53 +16,16 @@ export const Navbar = () => {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    // Función para actualizar el contador del carrito
-    useEffect(() => {
-        const updateCartCount = () => {
-            try {
-                const savedCart = localStorage.getItem('artesjac-cart');
-                if (savedCart && savedCart !== 'null' && savedCart !== '[]') {
-                    const cart = JSON.parse(savedCart);
-                    const totalItems = cart.reduce((total, item) => total + (item.quantity || 1), 0);
-                    setCartCount(totalItems);
-                } else {
-                    setCartCount(0);
-                }
-            } catch (error) {
-                console.error('Error al leer carrito:', error);
-                setCartCount(0);
-            }
-        };
-
-        // Actualizar al cargar la página
-        updateCartCount();
-
-        // Escuchar cambios en localStorage
-        const handleStorageChange = () => {
-            updateCartCount();
-        };
-
-        window.addEventListener('storage', handleStorageChange);
-        
-        // También verificar cada 1 segundo por si acaso
-        const interval = setInterval(updateCartCount, 1000);
-
-        return () => {
-            window.removeEventListener('storage', handleStorageChange);
-            clearInterval(interval);
-        };
-    }, []);
-
     return (
         <header className={`navbar ${isSticky ? 'sticky' : ''}`}>
             {/* Top Links */}
             <div className="navbar-top">
                 <div className="navbar-top-links">
-                    <NavLink to="/shop">Best Sellers</NavLink>
-                    <NavLink to="/shop">Gift Ideas</NavLink>
-                    <NavLink to="/shop">New Releases</NavLink>
-                    <NavLink to="/shop">Today's Deals</NavLink>
-                    <NavLink to="#customer-service">Customer Service</NavLink>
+                    <NavLink to="#">Featured Art</NavLink>
+                    <NavLink to="#">Craft Ideas</NavLink>
+                    <NavLink to="#">New Arrivals</NavLink>
+                    <NavLink to="#">Special Offers</NavLink>
+                    <NavLink to="#">Help Center</NavLink>
                 </div>
             </div>
 
@@ -72,33 +34,32 @@ export const Navbar = () => {
                 {/* Navigation Links */}
                 <nav className="navbar-links">
                     <NavLink to="/">Home</NavLink>
-                    <NavLink to="/shop">Tienda</NavLink>
-                    <NavLink to="/shop">Fashion</NavLink>
-                    <NavLink to="/shop">Electronic</NavLink>
-                    <NavLink to="/shop">Jewellery</NavLink>
+                    <NavLink to="/textile">Textile</NavLink>
+                    <NavLink to="/art">Handmade Art</NavLink>
+                    <NavLink to="/digital-art">Digital Art</NavLink>
                 </nav>
 
                 {/* Dropdown categories */}
                 <div className="navbar-dropdown">
                     <button className="dropdown-button">All Categories</button>
                     <div className="dropdown-menu">
-                        <Link to="/shop">Textil</Link>
-                        <Link to="/shop">Joyería</Link>
-                        <Link to="/shop">Pintura</Link>
-                        <Link to="/shop">Cerámica</Link>
+                        <NavLink to="#">Paintings</NavLink>
+                        <NavLink to="#">Ceramics</NavLink>
+                        <NavLink to="#">Sculptures</NavLink>
                     </div>
                 </div>
 
                 {/* Search Bar */}
                 <div className="navbar-search">
-                    <input type="text" placeholder="Search..." />
+                    <input type="text" placeholder="Search for art or crafts..." />
                     <button>
                         <i className="fa fa-search"></i>
                     </button>
                 </div>
 
-                {/* Language and Cart */}
+                {/* Language, Cart & Auth */}
                 <div className="navbar-actions">
+                    {/* Language */}
                     <div className="language-selector">
                         <button className="language-button">
                             <img src="/images/flag-uk.png" className="language-flag" alt="EN" /> English <i className="fa fa-angle-down"></i>
@@ -110,32 +71,21 @@ export const Navbar = () => {
                         </div>
                     </div>
 
-                    <div className="navbar-user">
-                        <Link to="/cart" style={{position: 'relative'}}>
-                            <i className="fa fa-shopping-cart"></i> 
-                            <span>Cart</span>
-                            {cartCount > 0 && (
-                                <span style={{
-                                    position: 'absolute',
-                                    top: '-8px',
-                                    right: '-8px',
-                                    backgroundColor: '#ff5722',
-                                    color: 'white',
-                                    borderRadius: '50%',
-                                    width: '20px',
-                                    height: '20px',
-                                    fontSize: '0.7rem',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontWeight: 'bold'
-                                }}>
-                                    {cartCount}
-                                </span>
-                            )}
-                        </Link>
-                        <NavLink to="#account">
-                            <i className="fa fa-user"></i> <span>Account</span>
+                    {/* Cart */}
+                    <div className="navbar-cart">
+                        <NavLink to="/cart">
+                            <i className="fa fa-shopping-cart"></i> <span>Cart</span>
+                        </NavLink>
+                    </div>
+
+                    {/* Login/Register Auth */}
+                    <div className="navbar-auth">
+                        <NavLink to="/login" className="auth-link">
+                            <i className="fa fa-sign-in-alt"></i> Iniciar Sesión
+                        </NavLink>
+                        <span className="auth-divider">|</span>
+                        <NavLink to="/register" className="auth-link">
+                            <i className="fa fa-user-plus"></i> Registrarse
                         </NavLink>
                     </div>
                 </div>

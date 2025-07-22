@@ -1,15 +1,22 @@
 /* ==== NAVBAR ==== */
 .navbar {
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-  background-color: #1f1f1f;
-  color: white;
-  width: 100%;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  font-family: Arial, sans-serif;
+    position: fixed;
+    /* Cambiado de sticky a fixed */
+    top: 0;
+    left: 0;
+    z-index: 1000;
+    background-color: #1f1f1f;
+    color: white;
+    width: 100%;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    font-family: Arial, sans-serif;
+    animation: slideDown 0.3s ease-in-out;
 }
 
+body {
+    padding-top: 160px;
+    /* Alto total del navbar para evitar solapamiento */
+}
 
 .navbar-top {
     text-align: center;
@@ -208,115 +215,45 @@
     color: #ff5722;
 }
 
-/* Cart badge */
-.cart-link {
-    position: relative;
-}
-
-.cart-badge {
-    position: absolute;
-    top: -8px;
-    right: -8px;
-    background-color: #ff5722;
-    color: white;
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
+/* ==== AUTH (Login / Register) ==== */
+.navbar-auth {
     display: flex;
     align-items: center;
-    justify-content: center;
-    font-size: 0.7rem;
-    font-weight: bold;
-    min-width: 20px;
+    gap: 0.5rem;
+    font-size: 0.9rem;
 }
 
-/* User dropdown */
-.user-dropdown {
-    position: relative;
-    display: inline-block;
-}
-
-.user-button {
-    background: none;
-    border: none;
+.auth-link {
     color: white;
+    background-color: #ff5722;
+    padding: 6px 12px;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: background-color 0.2s ease-in-out;
     display: flex;
     align-items: center;
     gap: 0.3rem;
-    cursor: pointer;
-    position: relative;
-    z-index: 2;
-    font-size: 0.9rem;
-    padding: 0.5rem;
-    border-radius: 4px;
-    transition: background-color 0.3s ease;
 }
 
-.user-button:hover {
-    background-color: #2b2b2b;
-    color: #ff5722;
+.auth-link:hover {
+    background-color: #e64a19;
 }
 
-.user-dropdown:hover .user-menu {
-    display: block;
+.auth-divider {
+    color: #ccc;
+    font-weight: bold;
+    margin: 0 4px;
 }
 
-.user-menu {
-    display: none;
-    position: absolute;
-    top: calc(100% + 5px);
-    right: 0;
-    background-color: white;
-    color: black;
-    min-width: 180px;
-    border-radius: 6px;
-    overflow: hidden;
-    z-index: 1000;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    pointer-events: auto;
-}
-
-.user-menu a {
-    display: flex;
-    align-items: center;
-    gap: 0.7rem;
-    padding: 0.8rem 1rem;
-    text-decoration: none;
-    color: black;
-    transition: background-color 0.3s ease;
-    border-bottom: 1px solid #f0f0f0;
-}
-
-.user-menu a:last-child {
-    border-bottom: none;
-}
-
-.user-menu a:hover {
-    background-color: #f8f8f8;
-    color: #ff5722;
-}
-
-.user-menu a i {
-    width: 16px;
-    text-align: center;
-}
-
-/* Se aplica dinámicamente al hacer scroll */
-.navbar.sticky {
-  position: sticky;
-  top: 0;
-  background-color: #1f1f1f;
-  animation: slideDown 0.3s ease-in-out;
-}
-
-/* Animación opcional para que se vea más fino */
+/* ==== Animación del navbar ==== */
 @keyframes slideDown {
-  from {
-    transform: translateY(-100%);
-  }
-  to {
-    transform: translateY(0%);
-  }
+    from {
+        transform: translateY(-100%);
+    }
+
+    to {
+        transform: translateY(0%);
+    }
 }
 
 /* ==== FOOTER ==== */
@@ -416,21 +353,23 @@
     color: #aaa;
 }
 
-
 /* ==== Full Screen Banner ==== */
 .full-screen-banner {
     width: 100%;
     height: 25vh;
-    /* 100% de la altura visible del navegador */
     overflow: hidden;
     position: relative;
+}
+
+.full-screen-banner {
+    margin-top: 150px;
+    /* ajustá al alto real del navbar */
 }
 
 .banner-image {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    /* Asegura que cubra todo sin deformarse feo */
     display: block;
 }
 
@@ -449,23 +388,5 @@
     .footer-subscribe input[type="email"] {
         width: 100%;
         max-width: 300px;
-    }
-
-    .cart-badge {
-        top: -10px;
-        right: -10px;
-    }
-
-    .user-menu {
-        right: -50px;
-        min-width: 150px;
-    }
-
-    .user-button span {
-        display: none;
-    }
-
-    .navbar-actions {
-        gap: 1rem;
     }
 }
