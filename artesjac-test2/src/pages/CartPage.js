@@ -12,11 +12,8 @@ export const CartPage = () => {
         const loadCart = () => {
             try {
                 const savedCart = localStorage.getItem('artesjac-cart');
-                console.log('CartPage - localStorage:', savedCart); // Debug
-                
                 if (savedCart && savedCart !== 'null' && savedCart !== '[]') {
                     const cart = JSON.parse(savedCart);
-                    console.log('CartPage - carrito parseado:', cart); // Debug
                     setCartItems(cart);
                 } else {
                     setCartItems([]);
@@ -35,42 +32,46 @@ export const CartPage = () => {
     useEffect(() => {
         if (!isLoading) {
             localStorage.setItem('artesjac-cart', JSON.stringify(cartItems));
-            console.log('CartPage - guardando en localStorage:', cartItems); // Debug
         }
     }, [cartItems, isLoading]);
 
-    // Función para actualizar la cantidad de un producto
+    // 🔄 Función para sincronizar estado y localStorage
+    const syncCart = (newCart) => {
+        setCartItems(newCart);
+        localStorage.setItem('artesjac-cart', JSON.stringify(newCart));
+    };
+
+    // Actualizar cantidad
     const updateQuantity = (productId, newQuantity) => {
         if (newQuantity <= 0) {
             removeItem(productId);
             return;
         }
-        
-        setCartItems(prevItems =>
-            prevItems.map(item =>
-                item.id === productId ? { ...item, quantity: newQuantity } : item
-            )
+
+        const updated = cartItems.map(item =>
+            item.id === productId ? { ...item, quantity: newQuantity } : item
         );
+        syncCart(updated);
     };
 
-    // Función para eliminar un producto del carrito
+    // Eliminar un producto
     const removeItem = (productId) => {
-        setCartItems(prevItems => prevItems.filter(item => item.id !== productId));
+        const newCart = cartItems.filter(item => item.id !== productId);
+        syncCart(newCart);
     };
 
-    // Función para limpiar todo el carrito
+    // Vaciar todo el carrito
     const clearCart = () => {
         if (window.confirm('¿Estás seguro de que quieres vaciar el carrito?')) {
-            setCartItems([]);
+            syncCart([]);
         }
     };
 
-    // Calcular el total del carrito
+    // Calcular totales
     const calculateTotal = () => {
         return cartItems.reduce((total, item) => total + (item.numericPrice * item.quantity), 0);
     };
 
-    // Calcular cantidad total de items
     const getTotalItems = () => {
         return cartItems.reduce((total, item) => total + item.quantity, 0);
     };
@@ -81,7 +82,7 @@ export const CartPage = () => {
         }
     };
 
-    // Mostrar loading
+    // Cargando...
     if (isLoading) {
         return (
             <main className="cart-container">
@@ -92,42 +93,30 @@ export const CartPage = () => {
                     borderRadius: '12px',
                     marginTop: '2rem'
                 }}>
-                    <i className="fa fa-spinner fa-spin" style={{fontSize: '3rem', color: '#ff5722', marginBottom: '1rem'}}></i>
+                    <i className="fa fa-spinner fa-spin" style={{ fontSize: '3rem', color: '#ff5722', marginBottom: '1rem' }}></i>
                     <h2>Cargando carrito...</h2>
                 </div>
             </main>
         );
     }
 
+    // Carrito vacío
     if (cartItems.length === 0) {
         return (
             <main className="cart-container">
                 <div className="cart-empty">
-                    <i className="fa fa-shopping-cart" style={{fontSize: '4rem', color: '#666', marginBottom: '1rem'}}></i>
+                    <i className="fa fa-shopping-cart" style={{ fontSize: '4rem', color: '#666', marginBottom: '1rem' }}></i>
                     <h2>Tu carrito está vacío</h2>
                     <p>¡Descubre nuestros productos artesanales y agrega algunos al carrito!</p>
                     <Link to="/shop" className="btn-continue-shopping">
                         <i className="fa fa-arrow-left"></i> Continuar comprando
                     </Link>
-                    
-                    {/* Debug info */}
-                    <div style={{
-                        marginTop: '2rem',
-                        padding: '1rem',
-                        backgroundColor: '#333',
-                        borderRadius: '6px',
-                        fontSize: '0.8rem',
-                        color: '#aaa'
-                    }}>
-                        <strong>CartPage Debug:</strong><br/>
-                        localStorage: {localStorage.getItem('artesjac-cart') || 'null'}<br/>
-                        cartItems.length: {cartItems.length}
-                    </div>
                 </div>
             </main>
         );
     }
 
+    // Carrito con productos
     return (
         <main className="cart-container">
             <div className="cart-header">
@@ -142,7 +131,7 @@ export const CartPage = () => {
                             <div className="item-image">
                                 <div className="product-image-sim"></div>
                             </div>
-                            
+
                             <div className="item-info">
                                 <Link to={`/product/${item.id}`} className="item-name">
                                     {item.name}
@@ -155,26 +144,26 @@ export const CartPage = () => {
 
                             <div className="item-controls">
                                 <div className="quantity-controls">
-                                    <button 
+                                    <button
                                         className="quantity-btn"
                                         onClick={() => updateQuantity(item.id, item.quantity - 1)}
                                     >
                                         <i className="fa fa-minus"></i>
                                     </button>
                                     <span className="quantity-display">{item.quantity}</span>
-                                    <button 
+                                    <button
                                         className="quantity-btn"
                                         onClick={() => updateQuantity(item.id, item.quantity + 1)}
                                     >
                                         <i className="fa fa-plus"></i>
                                     </button>
                                 </div>
-                                
+
                                 <p className="item-subtotal">
                                     Subtotal: ₡{(item.numericPrice * item.quantity).toLocaleString()}
                                 </p>
-                                
-                                <button 
+
+                                <button
                                     className="btn-remove"
                                     onClick={() => removeItem(item.id)}
                                 >
@@ -188,52 +177,40 @@ export const CartPage = () => {
                 <div className="cart-summary">
                     <div className="summary-card">
                         <h3>Resumen del pedido</h3>
-                        
+
                         <div className="summary-row">
                             <span>Productos ({getTotalItems()})</span>
                             <span>₡{calculateTotal().toLocaleString()}</span>
                         </div>
-                        
+
                         <div className="summary-row">
                             <span>Envío</span>
                             <span>Gratis</span>
                         </div>
-                        
+
                         <div className="summary-row total">
                             <span>Total</span>
                             <span>₡{calculateTotal().toLocaleString()}</span>
                         </div>
 
                         <div className="cart-actions">
-                            <button 
+                            <button
                                 className="btn-checkout"
                                 onClick={handleCheckout}
                             >
                                 <i className="fa fa-credit-card"></i> Proceder al pago
                             </button>
-                            
+
                             <Link to="/shop" className="btn-continue-shopping">
                                 <i className="fa fa-arrow-left"></i> Continuar comprando
                             </Link>
-                            
-                            <button 
+
+                            <button
                                 className="btn-clear-cart"
                                 onClick={clearCart}
                             >
                                 <i className="fa fa-trash"></i> Vaciar carrito
                             </button>
-                        </div>
-
-                        {/* Debug info para desarrollo */}
-                        <div style={{
-                            marginTop: '1rem',
-                            padding: '0.5rem',
-                            backgroundColor: '#333',
-                            borderRadius: '6px',
-                            fontSize: '0.7rem',
-                            color: '#aaa'
-                        }}>
-                            <strong>Debug:</strong> localStorage = {localStorage.getItem('artesjac-cart')?.slice(0, 50)}...
                         </div>
                     </div>
                 </div>
