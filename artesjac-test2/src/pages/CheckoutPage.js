@@ -282,14 +282,8 @@ export const CheckoutPage = () => {
         return (
             <div className="checkout-page">
                 <div className="checkout-container">
-                    <div style={{
-                        textAlign: 'center', 
-                        padding: '4rem 2rem',
-                        backgroundColor: '#1f1f1f',
-                        borderRadius: '12px',
-                        marginTop: '2rem'
-                    }}>
-                        <i className="fa fa-spinner fa-spin" style={{fontSize: '3rem', color: '#ff5722', marginBottom: '1rem'}}></i>
+                    <div className="checkout-loading">
+                        <i className="fa fa-spinner fa-spin"></i>
                         <h2>Cargando checkout...</h2>
                         <p>Verificando productos en el carrito</p>
                     </div>
@@ -303,74 +297,33 @@ export const CheckoutPage = () => {
         return (
             <div className="checkout-page">
                 <div className="checkout-container">
-                    <div style={{
-                        textAlign: 'center', 
-                        backgroundColor: '#1f1f1f', 
-                        padding: '4rem 2rem', 
-                        borderRadius: '12px',
-                        marginTop: '2rem'
-                    }}>
-                        <i className="fa fa-shopping-cart" style={{fontSize: '3rem', color: '#666', marginBottom: '1rem'}}></i>
+                    <div className="checkout-empty">
+                        <i className="fa fa-shopping-cart"></i>
                         <h2>Tu carrito está vacío</h2>
                         <p>No hay productos para proceder al checkout</p>
                         
-                        <div style={{
-                            backgroundColor: '#2b2b2b',
-                            padding: '1rem',
-                            borderRadius: '8px',
-                            margin: '2rem 0',
-                            border: '1px solid #ff5722'
-                        }}>
-                            <p style={{color: '#ff5722', margin: '0 0 0.5rem 0'}}>
+                        <div className="countdown-box">
+                            <p className="countdown-text">
                                 Redirigiendo al carrito en {countdown} segundo{countdown !== 1 ? 's' : ''}...
                             </p>
-                            <div style={{
-                                width: '100%',
-                                height: '4px',
-                                backgroundColor: '#444',
-                                borderRadius: '2px',
-                                overflow: 'hidden'
-                            }}>
-                                <div style={{
-                                    width: `${((3 - countdown) / 3) * 100}%`,
-                                    height: '100%',
-                                    backgroundColor: '#ff5722',
-                                    transition: 'width 1s ease'
-                                }}></div>
+                            <div className="countdown-progress">
+                                <div 
+                                    className="countdown-progress-bar"
+                                    style={{ width: `${((3 - countdown) / 3) * 100}%` }}
+                                ></div>
                             </div>
                         </div>
 
-                        <div style={{display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '2rem'}}>
-                            <Link to="/shop" style={{
-                                backgroundColor: '#ff5722',
-                                color: 'white',
-                                padding: '0.8rem 1.5rem',
-                                borderRadius: '6px',
-                                textDecoration: 'none'
-                            }}>
+                        <div className="empty-cart-actions">
+                            <Link to="/shop" className="shop-btn">
                                 Ir a la tienda
                             </Link>
-                            <Link to="/cart" style={{
-                                backgroundColor: 'transparent',
-                                color: '#ff5722',
-                                border: '1px solid #ff5722',
-                                padding: '0.8rem 1.5rem',
-                                borderRadius: '6px',
-                                textDecoration: 'none'
-                            }}>
+                            <Link to="/cart" className="cart-btn">
                                 Ver carrito ahora
                             </Link>
                         </div>
 
-                        {/* Debug info */}
-                        <div style={{
-                            marginTop: '2rem',
-                            padding: '1rem',
-                            backgroundColor: '#333',
-                            borderRadius: '6px',
-                            fontSize: '0.8rem',
-                            color: '#aaa'
-                        }}>
+                        <div className="debug-info">
                             <strong>Debug Info:</strong><br/>
                             localStorage: {localStorage.getItem('artesjac-cart') || 'null'}<br/>
                             cartItems.length: {cartItems.length}<br/>
@@ -640,7 +593,7 @@ export const CheckoutPage = () => {
                                 <span>Envío:</span>
                                 <span>
                                     {shippingCost === 0 ? (
-                                        <span style={{color: '#4caf50'}}>¡Gratis!</span>
+                                        <span className="shipping-free">¡Gratis!</span>
                                     ) : (
                                         `₡${shippingCost.toLocaleString()}`
                                     )}
@@ -648,7 +601,7 @@ export const CheckoutPage = () => {
                             </div>
                             {calculateSubtotal() < 50000 && shippingCost > 0 && (
                                 <div className="shipping-note">
-                                    <small style={{color: '#aaa', fontSize: '0.8rem'}}>
+                                    <small>
                                         Envío gratis en compras mayores a ₡50.000
                                     </small>
                                 </div>
@@ -686,19 +639,18 @@ export const CheckoutPage = () => {
                             Volver al Carrito
                         </Link>
 
-                        {/* Información de seguridad */}
-                        <div className="security-badges" style={{marginTop: '1rem', padding: '1rem 0', borderTop: '1px solid #333'}}>
-                            <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.8rem', color: '#aaa'}}>
-                                <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
-                                    <i className="fa fa-shield-alt" style={{color: '#4caf50'}}></i>
+                        <div className="security-badges">
+                            <div className="security-badges-content">
+                                <div className="security-badge">
+                                    <i className="fa fa-shield-alt"></i>
                                     <span>Pago 100% seguro</span>
                                 </div>
-                                <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
-                                    <i className="fa fa-truck" style={{color: '#4caf50'}}></i>
+                                <div className="security-badge">
+                                    <i className="fa fa-truck"></i>
                                     <span>Envío a todo Costa Rica</span>
                                 </div>
-                                <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
-                                    <i className="fa fa-undo" style={{color: '#4caf50'}}></i>
+                                <div className="security-badge">
+                                    <i className="fa fa-undo"></i>
                                     <span>30 días para devoluciones</span>
                                 </div>
                             </div>
