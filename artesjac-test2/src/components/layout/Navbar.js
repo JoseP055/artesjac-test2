@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import mx from '../../assets/images/flag-mexico.png';
+import us from '../../assets/images/flag-usa.png';
+import mk from '../../assets/images/flag-cr.png';
 import '../../styles/layout.css';
 
 export const Navbar = () => {
@@ -21,61 +24,58 @@ export const Navbar = () => {
             {/* Top Links */}
             <div className="navbar-top">
                 <div className="navbar-top-links">
-                    <NavLink to="#">Best Sellers</NavLink>
-                    <NavLink to="#">Gift Ideas</NavLink>
-                    <NavLink to="#">New Releases</NavLink>
-                    <NavLink to="#">Today's Deals</NavLink>
-                    <NavLink to="#">Customer Service</NavLink>
+                    <NavLink to="/shop">Featured Art</NavLink>
+                    <NavLink to="/shop">Craft Ideas</NavLink>
+                    <NavLink to="/shop">New Arrivals</NavLink>
+                    <NavLink to="/shop">Special Offers</NavLink>
+                    <NavLink to="/shop">Help Center</NavLink>
                 </div>
             </div>
 
             {/* Main Navbar */}
             <div className="navbar-main">
+                
                 {/* Navigation Links */}
                 <nav className="navbar-links">
+                    <NavLink to="/"><span className='logo-text'>ArtesJAC</span></NavLink>
                     <NavLink to="/">Home</NavLink>
-                    <NavLink to="/fashion">Fashion</NavLink>
-                    <NavLink to="/electronic">Electronic</NavLink>
-                    <NavLink to="/jewellery">Jewellery</NavLink>
+                    <NavLink to="/profile">Profile</NavLink>
+
                 </nav>
 
-                {/* Dropdown categories */}
-                <div className="navbar-dropdown">
-                    <button className="dropdown-button">All Categories</button>
-                    <div className="dropdown-menu">
-                        <NavLink to="#">Action</NavLink>
-                        <NavLink to="#">Another action</NavLink>
-                        <NavLink to="#">Something else</NavLink>
-                    </div>
-                </div>
 
-                {/* Search Bar */}
-                <div className="navbar-search">
-                    <input type="text" placeholder="Search..." />
-                    <button>
-                        <i className="fa fa-search"></i>
-                    </button>
-                </div>
-
-                {/* Language and Cart */}
+                {/* Language, Cart & Auth */}
                 <div className="navbar-actions">
+                    {/* Language */}
                     <div className="language-selector">
                         <button className="language-button">
-                            <img src="/images/flag-uk.png" className="language-flag" alt="EN" /> English <i className="fa fa-angle-down"></i>
+                            <img src={us} className="language-flag" alt="EN" /> English <i className="fa fa-angle-down"></i>
                         </button>
                         <div className="language-menu">
                             <NavLink to="#">
-                                <img src="/images/flag-france.png" className="language-flag" alt="FR" /> French
+                                <img src={mx} className="language-flag" alt="ESP" /> Español
+                            </NavLink>
+                            <NavLink to="#">
+                                <img src={mk} className="language-flag" alt="MLK" /> Maleku
                             </NavLink>
                         </div>
                     </div>
 
-                    <div className="navbar-user">
-                        <NavLink to="#">
+                    {/* Cart */}
+                    <div className="navbar-cart">
+                        <NavLink to="/cart">
                             <i className="fa fa-shopping-cart"></i> <span>Cart</span>
                         </NavLink>
-                        <NavLink to="#">
-                            <i className="fa fa-user"></i> <span>Account</span>
+                    </div>
+
+                    {/* Login/Register Auth */}
+                    <div className="navbar-auth">
+                        <NavLink to="/login" className="auth-link">
+                            <i className="fa fa-sign-in-alt"></i> Iniciar Sesión
+                        </NavLink>
+                        <span className="auth-divider">|</span>
+                        <NavLink to="/register" className="auth-link">
+                            <i className="fa fa-user-plus"></i> Registrarse
                         </NavLink>
                     </div>
                 </div>

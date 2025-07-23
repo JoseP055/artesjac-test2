@@ -1,4 +1,5 @@
 
+import { ThemeProvider } from './context/ThemeContext';
 import { AppRouter } from './routes/AppRouter';
 import './styles/global.css';
 
@@ -6,9 +7,9 @@ import './styles/global.css';
 function App() {
   return (
     <div className="App">
-      <header className="App-header">
+      <ThemeProvider>
         <AppRouter />
-      </header>
+      </ThemeProvider>
     </div>
   );
 }
