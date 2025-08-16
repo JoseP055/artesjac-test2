@@ -14,15 +14,13 @@ export const SellerDashboard = () => {
         avgRating: 0
     });
     const [recentOrders, setRecentOrders] = useState([]);
-    const [topProducts, setTopProducts] = useState([]);
-    const [monthlyData, setMonthlyData] = useState([]);
 
     useEffect(() => {
         loadDashboardData();
     }, []);
 
     const loadDashboardData = () => {
-        // Simular datos del dashboard del vendedor
+        // Cargar datos del dashboard del vendedor
         setTimeout(() => {
             setStats({
                 totalSales: 45,
@@ -33,54 +31,148 @@ export const SellerDashboard = () => {
                 avgRating: 4.8
             });
 
-            setRecentOrders([
-                {
-                    id: 'ORD-001',
-                    date: '2024-01-15',
-                    customer: 'Ana Rojas',
-                    status: 'pendiente',
-                    total: 25000,
-                    items: ['Collar artesanal', 'Bolso tejido']
-                },
-                {
-                    id: 'ORD-002',
-                    date: '2024-01-14',
-                    customer: 'Carlos Mendez',
-                    status: 'enviado',
-                    total: 18500,
-                    items: ['Cuadro paisaje']
-                },
-                {
-                    id: 'ORD-003',
-                    date: '2024-01-13',
-                    customer: 'María González',
-                    status: 'entregado',
-                    total: 32000,
-                    items: ['Vasija cerámica', 'Aretes madera']
+            // Cargar pedidos desde la misma fuente que SellerOrders
+            const savedOrders = localStorage.getItem(`orders_${user?.id}`);
+            let ordersData = [];
+
+            if (savedOrders) {
+                try {
+                    ordersData = JSON.parse(savedOrders);
+                } catch (error) {
+                    console.error('Error al cargar pedidos:', error);
+                    ordersData = getDefaultOrders();
                 }
-            ]);
+            } else {
+                ordersData = getDefaultOrders();
+            }
 
-            setTopProducts([
-                { id: 1, name: 'Collar artesanal de semillas', sales: 15, revenue: 180000 },
-                { id: 2, name: 'Bolso tejido a mano', sales: 8, revenue: 148000 },
-                { id: 3, name: 'Aretes de madera tallada', sales: 12, revenue: 102000 }
-            ]);
+            // Mostrar solo los 5 más recientes
+            const recentOrders = ordersData
+                .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                .slice(0, 5)
+                .map(order => ({
+                    id: order.id,
+                    date: order.date,
+                    customer: order.customer.name,
+                    status: order.status,
+                    total: order.total,
+                    items: order.items.map(item => item.name)
+                }));
 
-            setMonthlyData([
-                { month: 'Ene', sales: 8, revenue: 95000 },
-                { month: 'Feb', sales: 12, revenue: 140000 },
-                { month: 'Mar', sales: 15, revenue: 180000 },
-                { month: 'Abr', sales: 10, revenue: 125000 }
-            ]);
+            setRecentOrders(recentOrders);
         }, 1000);
     };
+
+    const getDefaultOrders = () => [
+        {
+            id: 'ORD-001',
+            date: '2024-01-15',
+            customer: {
+                name: 'Ana Rojas',
+                email: 'ana.rojas@email.com',
+                phone: '+506 8888-1111',
+                address: 'San José, Costa Rica'
+            },
+            status: 'pendiente',
+            total: 25000,
+            items: [
+                { name: 'Collar artesanal', quantity: 1, price: 12000 },
+                { name: 'Bolso tejido', quantity: 1, price: 13000 }
+            ],
+            paymentMethod: 'Transferencia',
+            notes: 'Cliente solicita entrega urgente',
+            createdAt: '2024-01-15T10:30:00Z',
+            updatedAt: '2024-01-15T10:30:00Z'
+        },
+        {
+            id: 'ORD-002',
+            date: '2024-01-14',
+            customer: {
+                name: 'Carlos Mendez',
+                email: 'carlos.mendez@email.com',
+                phone: '+506 8888-2222',
+                address: 'Cartago, Costa Rica'
+            },
+            status: 'enviado',
+            total: 18500,
+            items: [
+                { name: 'Cuadro paisaje', quantity: 1, price: 18500 }
+            ],
+            paymentMethod: 'Tarjeta',
+            notes: '',
+            trackingNumber: 'TR-123456789',
+            createdAt: '2024-01-14T14:20:00Z',
+            updatedAt: '2024-01-15T09:15:00Z'
+        },
+        {
+            id: 'ORD-003',
+            date: '2024-01-13',
+            customer: {
+                name: 'María González',
+                email: 'maria.gonzalez@email.com',
+                phone: '+506 8888-3333',
+                address: 'Alajuela, Costa Rica'
+            },
+            status: 'entregado',
+            total: 32000,
+            items: [
+                { name: 'Vasija cerámica', quantity: 1, price: 25000 },
+                { name: 'Aretes madera', quantity: 1, price: 7000 }
+            ],
+            paymentMethod: 'Efectivo',
+            notes: 'Entregado sin problemas',
+            deliveredAt: '2024-01-16T16:30:00Z',
+            createdAt: '2024-01-13T11:45:00Z',
+            updatedAt: '2024-01-16T16:30:00Z'
+        },
+        {
+            id: 'ORD-004',
+            date: '2024-01-12',
+            customer: {
+                name: 'Luis Pérez',
+                email: 'luis.perez@email.com',
+                phone: '+506 8888-4444',
+                address: 'Heredia, Costa Rica'
+            },
+            status: 'en_proceso',
+            total: 15000,
+            items: [
+                { name: 'Maceta decorativa', quantity: 1, price: 15000 }
+            ],
+            paymentMethod: 'Transferencia',
+            notes: 'Producto en preparación',
+            createdAt: '2024-01-12T09:00:00Z',
+            updatedAt: '2024-01-14T10:00:00Z'
+        },
+        {
+            id: 'ORD-005',
+            date: '2024-01-11',
+            customer: {
+                name: 'Sandra López',
+                email: 'sandra.lopez@email.com',
+                phone: '+506 8888-5555',
+                address: 'Puntarenas, Costa Rica'
+            },
+            status: 'retraso',
+            total: 42000,
+            items: [
+                { name: 'Set de platos artesanales', quantity: 1, price: 42000 }
+            ],
+            paymentMethod: 'Tarjeta',
+            notes: 'Retraso en producción por falta de material',
+            createdAt: '2024-01-11T13:20:00Z',
+            updatedAt: '2024-01-15T08:00:00Z'
+        }
+    ];
 
     const getStatusColor = (status) => {
         switch (status) {
             case 'entregado': return '#4caf50';
-            case 'enviado': return '#ff9800';
+            case 'enviado': return '#9c27b0';
+            case 'en_proceso': return '#ff9800';
             case 'pendiente': return '#2196f3';
             case 'cancelado': return '#f44336';
+            case 'retraso': return '#ff5722';
             default: return '#666';
         }
     };
@@ -89,8 +181,10 @@ export const SellerDashboard = () => {
         switch (status) {
             case 'entregado': return 'Entregado';
             case 'enviado': return 'Enviado';
+            case 'en_proceso': return 'En Proceso';
             case 'pendiente': return 'Pendiente';
             case 'cancelado': return 'Cancelado';
+            case 'retraso': return 'Con Retraso';
             default: return status;
         }
     };
@@ -100,8 +194,8 @@ export const SellerDashboard = () => {
             {/* Header del Dashboard */}
             <div className="dashboard-header">
                 <div className="welcome-section">
-                    <h1>¡Bienvenido, {user?.name}! 🏪</h1>
-                    <p className="business-name">{user?.businessName}</p>
+                    <h1>¡Bienvenido, {user?.name || 'Vendedor'}! 🏪</h1>
+                    <p className="business-name">{user?.businessName || user?.name || 'Mi Tienda'}</p>
                     <p>Tu centro de gestión de ventas</p>
                 </div>
                 <div className="user-avatar seller">
@@ -184,10 +278,10 @@ export const SellerDashboard = () => {
                 <div className="section-card quick-actions seller-actions">
                     <h2>🚀 Gestión Rápida</h2>
                     <div className="actions-grid">
-                        <Link to="/seller/products/new" className="action-card primary">
-                            <i className="fa fa-plus-circle"></i>
-                            <h3>Agregar Producto</h3>
-                            <p>Sube un nuevo producto a tu tienda</p>
+                        <Link to="/seller/inventory" className="action-card primary">
+                            <i className="fa fa-boxes"></i>
+                            <h3>Gestión de Inventario</h3>
+                            <p>Administra todos tus productos</p>
                         </Link>
 
                         <Link to="/seller/orders" className="action-card">
@@ -196,28 +290,16 @@ export const SellerDashboard = () => {
                             <p>Revisa y procesa los pedidos</p>
                         </Link>
 
-                        <Link to="/seller/products" className="action-card">
-                            <i className="fa fa-boxes"></i>
-                            <h3>Mi Inventario</h3>
-                            <p>Administra tus productos</p>
-                        </Link>
-
                         <Link to="/seller/analytics" className="action-card">
                             <i className="fa fa-chart-line"></i>
                             <h3>Estadísticas</h3>
                             <p>Análisis de ventas detallado</p>
                         </Link>
 
-                        <Link to="/seller/profile" className="action-card">
+                        <Link to="/seller/store-profile" className="action-card">
                             <i className="fa fa-store-alt"></i>
                             <h3>Mi Tienda</h3>
-                            <p>Configura tu perfil de vendedor</p>
-                        </Link>
-
-                        <Link to="/seller/messages" className="action-card">
-                            <i className="fa fa-comments"></i>
-                            <h3>Mensajes</h3>
-                            <p>Comunícate con los clientes</p>
+                            <p>Configura tu perfil y contacto</p>
                         </Link>
                     </div>
                 </div>
@@ -228,66 +310,29 @@ export const SellerDashboard = () => {
                         <h2>📦 Pedidos Recientes</h2>
                         <Link to="/seller/orders" className="view-all-link">Ver todos</Link>
                     </div>
-                    <div className="orders-table">
-                        <div className="table-header">
-                            <span>Pedido</span>
-                            <span>Cliente</span>
-                            <span>Fecha</span>
-                            <span>Estado</span>
-                            <span>Total</span>
-                        </div>
-                        {recentOrders.map(order => (
-                            <div key={order.id} className="table-row">
-                                <span className="order-id">#{order.id}</span>
-                                <span className="customer-name">{order.customer}</span>
-                                <span className="order-date">{new Date(order.date).toLocaleDateString('es-CR')}</span>
-                                <span 
-                                    className="status-badge"
-                                    style={{ backgroundColor: getStatusColor(order.status) }}
-                                >
-                                    {getStatusText(order.status)}
-                                </span>
-                                <span className="order-total">₡{order.total.toLocaleString()}</span>
+                    <div className="orders-table-container">
+                        <div className="orders-table">
+                            <div className="table-header">
+                                <div className="header-cell">Pedido</div>
+                                <div className="header-cell">Cliente</div>
+                                <div className="header-cell">Fecha</div>
+                                <div className="header-cell">Estado</div>
+                                <div className="header-cell">Total</div>
                             </div>
-                        ))}
-                    </div>
-                </div>
-
-                <div className="dashboard-grid">
-                    {/* Productos más vendidos */}
-                    <div className="section-card top-products">
-                        <div className="section-header">
-                            <h2>🏆 Productos Más Vendidos</h2>
-                            <Link to="/seller/products" className="view-all-link">Ver todos</Link>
-                        </div>
-                        <div className="products-ranking">
-                            {topProducts.map((product, index) => (
-                                <div key={product.id} className="ranking-item">
-                                    <div className="rank-number">#{index + 1}</div>
-                                    <div className="product-info">
-                                        <h4>{product.name}</h4>
-                                        <p>{product.sales} ventas • ₡{product.revenue.toLocaleString()}</p>
+                            {recentOrders.slice(0, 5).map(order => (
+                                <div key={order.id} className="table-row">
+                                    <div className="table-cell order-id">#{order.id}</div>
+                                    <div className="table-cell customer-name">{order.customer}</div>
+                                    <div className="table-cell order-date">{new Date(order.date).toLocaleDateString('es-CR')}</div>
+                                    <div className="table-cell">
+                                        <span
+                                            className="status-badge"
+                                            style={{ backgroundColor: getStatusColor(order.status) }}
+                                        >
+                                            {getStatusText(order.status)}
+                                        </span>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Gráfico de ventas mensual */}
-                    <div className="section-card monthly-chart">
-                        <h2>📈 Ventas por Mes</h2>
-                        <div className="chart-container">
-                            {monthlyData.map((data, index) => (
-                                <div key={index} className="chart-bar">
-                                    <div 
-                                        className="bar" 
-                                        style={{ 
-                                            height: `${(data.sales / 20) * 100}%`,
-                                            backgroundColor: '#ff5722'
-                                        }}
-                                    ></div>
-                                    <span className="bar-label">{data.month}</span>
-                                    <span className="bar-value">{data.sales}</span>
+                                    <div className="table-cell order-total">₡{order.total.toLocaleString()}</div>
                                 </div>
                             ))}
                         </div>

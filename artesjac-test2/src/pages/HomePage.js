@@ -60,7 +60,7 @@ export const HomePage = () => {
               </p>
               <Link to="/register" className="home-button">Registrarme como Comprador</Link>
             </div>
-            
+
             <div className="category-card" style={{ padding: '2rem', textAlign: 'center' }}>
               <i className="fa fa-store" style={{ fontSize: '3rem', color: '#ff5722', marginBottom: '1rem' }}></i>
               <h3>Soy Vendedor/Artesano</h3>
@@ -125,10 +125,10 @@ export const HomePage = () => {
           marginTop: '3rem'
         }}>
           <h2 style={{ textAlign: 'center', marginBottom: '2rem' }}>¿Por qué elegir ArtesJAC?</h2>
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
-            gap: '2rem' 
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+            gap: '2rem'
           }}>
             <div style={{ textAlign: 'center' }}>
               <i className="fa fa-heart" style={{ fontSize: '2.5rem', color: '#ff5722', marginBottom: '1rem' }}></i>
@@ -137,7 +137,7 @@ export const HomePage = () => {
                 Cada producto es creado cuidadosamente por artesanos locales con técnicas tradicionales
               </p>
             </div>
-            
+
             <div style={{ textAlign: 'center' }}>
               <i className="fa fa-shipping-fast" style={{ fontSize: '2.5rem', color: '#ff5722', marginBottom: '1rem' }}></i>
               <h3>Envío a Todo Costa Rica</h3>
@@ -145,7 +145,7 @@ export const HomePage = () => {
                 Llevamos las creaciones artesanales directamente a tu puerta en todo el país
               </p>
             </div>
-            
+
             <div style={{ textAlign: 'center' }}>
               <i className="fa fa-handshake" style={{ fontSize: '2.5rem', color: '#ff5722', marginBottom: '1rem' }}></i>
               <h3>Apoyo Local</h3>
@@ -164,8 +164,8 @@ export const HomePage = () => {
           borderRadius: '12px',
           marginTop: '3rem'
         }}>
-          <h2 style={{color: '#fff', marginBottom: '1rem'}}>¿Listo para comenzar?</h2>
-          <p style={{color: '#ccc', marginBottom: '2rem', fontSize: '1.1rem'}}>
+          <h2 style={{ color: '#fff', marginBottom: '1rem' }}>¿Listo para comenzar?</h2>
+          <p style={{ color: '#ccc', marginBottom: '2rem', fontSize: '1.1rem' }}>
             Únete a nuestra comunidad de amantes del arte artesanal costarricense
           </p>
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>

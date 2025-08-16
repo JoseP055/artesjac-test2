@@ -53,7 +53,7 @@ export const Navbar = () => {
                 <nav className="navbar-links">
                     <NavLink to="/"><span className='logo-text'>ArtesJAC</span></NavLink>
                     <NavLink to="/">Home</NavLink>
-                    
+
                     {/* Enlaces específicos según tipo de usuario */}
                     {isAuthenticated() ? (
                         <>
@@ -105,7 +105,7 @@ export const Navbar = () => {
                     {/* Usuario autenticado */}
                     {isAuthenticated() ? (
                         <div className="navbar-user-menu">
-                            <button 
+                            <button
                                 className="user-menu-button"
                                 onClick={() => setShowUserMenu(!showUserMenu)}
                             >
@@ -134,13 +134,13 @@ export const Navbar = () => {
                                             <span className="business-name">{user?.businessName}</span>
                                         )}
                                     </div>
-                                    
+
                                     <div className="user-dropdown-links">
                                         <button onClick={handleDashboardClick} className="dropdown-link">
                                             <i className="fa fa-tachometer-alt"></i>
                                             Dashboard
                                         </button>
-                                        
+
                                         <NavLink to="/profile" className="dropdown-link" onClick={() => setShowUserMenu(false)}>
                                             <i className="fa fa-user-cog"></i>
                                             Mi Perfil
@@ -167,7 +167,7 @@ export const Navbar = () => {
                                         )}
 
                                         <div className="dropdown-divider"></div>
-                                        
+
                                         <button onClick={handleLogout} className="dropdown-link logout">
                                             <i className="fa fa-sign-out-alt"></i>
                                             Cerrar Sesión
