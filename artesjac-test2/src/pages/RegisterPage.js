@@ -1,15 +1,22 @@
+// pages/RegisterPage.js
 import React from 'react';
-import { Link } from 'react-router-dom';
-import '../styles/variables.css'; 
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../modules/auth/AuthContext';
+import '../styles/variables.css';
 
 export const RegisterPage = () => {
-    const [userType, setUserType] = React.useState('buyer'); // 'buyer' o 'seller'
+    const navigate = useNavigate();
+    const { register, getDashboardRoute } = useAuth();
+
+    const [userType, setUserType] = React.useState('buyer');
     const [formData, setFormData] = React.useState({
         name: '',
         email: '',
         password: '',
         confirmPassword: '',
-        businessName: '', // solo para vendedores
+        businessName: '',
+        phone: '',
+        address: ''
     });
     const [error, setError] = React.useState('');
     const [loading, setLoading] = React.useState(false);
@@ -19,35 +26,53 @@ export const RegisterPage = () => {
         setFormData((prev) => ({ ...prev, [name]: value }));
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError('');
 
+        // Validaciones frontend
         if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
-            setError('Por favor, completa todos los campos.');
+            setError('Por favor, completa todos los campos obligatorios.');
             setLoading(false);
             return;
         }
-
         if (formData.password !== formData.confirmPassword) {
             setError('Las contraseñas no coinciden.');
             setLoading(false);
             return;
         }
-
+        if (formData.password.length < 6) {
+            setError('La contraseña debe tener al menos 6 caracteres.');
+            setLoading(false);
+            return;
+        }
         if (userType === 'seller' && !formData.businessName.trim()) {
             setError('Por favor, ingresa el nombre del negocio.');
             setLoading(false);
             return;
         }
 
-        // Simulamos una llamada a la API
-        setTimeout(() => {
-            alert(`Registro exitoso como ${userType === 'buyer' ? 'comprador' : 'vendedor'}`);
-            console.log('Datos registrados:', { ...formData, userType });
-            setLoading(false);
-        }, 1000);
+        // Llamar a backend
+        const res = await register({
+            name: formData.name,
+            email: formData.email,
+            password: formData.password,
+            userType,
+            businessName: userType === 'seller' ? formData.businessName : null,
+            phone: formData.phone || null,
+            address: formData.address || null
+        });
+
+        setLoading(false);
+
+        if (!res.ok) {
+            setError(res.error || 'No se pudo registrar.');
+            return;
+        }
+
+        // Redirigir según tipo
+        navigate(getDashboardRoute());
     };
 
     return (
@@ -57,39 +82,38 @@ export const RegisterPage = () => {
                 {error && <p className="error">{error}</p>}
 
                 <form onSubmit={handleSubmit}>
-                    {/* Selector de tipo de usuario */}
+                    {/* Selector tipo de usuario */}
                     <div className="user-type-selector">
                         <button
                             type="button"
                             className={`type-button ${userType === 'buyer' ? 'active' : ''}`}
                             onClick={() => setUserType('buyer')}
                         >
-                            Soy Comprador
+                            🛒 Soy Comprador
                         </button>
                         <button
                             type="button"
                             className={`type-button ${userType === 'seller' ? 'active' : ''}`}
                             onClick={() => setUserType('seller')}
                         >
-                            Soy Vendedor
+                            🏪 Soy Vendedor/Artesano
                         </button>
                     </div>
 
-                    {/* Nombre */}
+                    {/* Básico */}
                     <div className="form-group">
-                        <label>Nombre:</label>
+                        <label>Nombre completo: *</label>
                         <input
                             type="text"
                             name="name"
                             value={formData.name}
                             onChange={handleChange}
-                            placeholder="Tu nombre"
+                            placeholder="Tu nombre completo"
                         />
                     </div>
 
-                    {/* Email */}
                     <div className="form-group">
-                        <label>Correo electrónico:</label>
+                        <label>Correo electrónico: *</label>
                         <input
                             type="email"
                             name="email"
@@ -99,9 +123,46 @@ export const RegisterPage = () => {
                         />
                     </div>
 
-                    {/* Contraseña */}
+                    {/* Solo vendedores */}
+                    {userType === 'seller' && (
+                        <div className="form-group">
+                            <label>Nombre del negocio/marca: *</label>
+                            <input
+                                type="text"
+                                name="businessName"
+                                value={formData.businessName}
+                                onChange={handleChange}
+                                placeholder="Nombre de tu tienda o marca artesanal"
+                            />
+                        </div>
+                    )}
+
+                    {/* Contacto */}
                     <div className="form-group">
-                        <label>Contraseña:</label>
+                        <label>Teléfono:</label>
+                        <input
+                            type="tel"
+                            name="phone"
+                            value={formData.phone}
+                            onChange={handleChange}
+                            placeholder="+506 8888-8888"
+                        />
+                    </div>
+
+                    <div className="form-group">
+                        <label>Dirección:</label>
+                        <input
+                            type="text"
+                            name="address"
+                            value={formData.address}
+                            onChange={handleChange}
+                            placeholder="Tu dirección"
+                        />
+                    </div>
+
+                    {/* Passwords */}
+                    <div className="form-group">
+                        <label>Contraseña: *</label>
                         <input
                             type="password"
                             name="password"
@@ -111,9 +172,8 @@ export const RegisterPage = () => {
                         />
                     </div>
 
-                    {/* Confirmar contraseña */}
                     <div className="form-group">
-                        <label>Confirmar contraseña:</label>
+                        <label>Confirmar contraseña: *</label>
                         <input
                             type="password"
                             name="confirmPassword"
@@ -123,26 +183,10 @@ export const RegisterPage = () => {
                         />
                     </div>
 
-                    {/* Nombre del negocio (solo para vendedores) */}
-                    {userType === 'seller' && (
-                        <div className="form-group">
-                            <label>Nombre del negocio:</label>
-                            <input
-                                type="text"
-                                name="businessName"
-                                value={formData.businessName}
-                                onChange={handleChange}
-                                placeholder="Nombre de tu tienda o empresa"
-                            />
-                        </div>
-                    )}
-
-                    {/* Botón centrado */}
                     <button type="submit" disabled={loading} className="login-button">
-                        {loading ? 'Cargando...' : 'Registrarse'}
+                        {loading ? 'Registrando...' : 'Registrarse'}
                     </button>
 
-                    {/* Enlace a login */}
                     <div className="register-link">
                         <p>¿Ya tienes cuenta? <Link to="/login">Inicia sesión</Link></p>
                     </div>

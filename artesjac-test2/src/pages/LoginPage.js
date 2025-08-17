@@ -1,37 +1,39 @@
+// pages/LoginPage.js
 import React from 'react';
-import { Link, NavLink } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../modules/auth/AuthContext';
 import '../styles/variables.css';
 
-
 export const LoginPage = () => {
+    const navigate = useNavigate();
+    const { login, getDashboardRoute } = useAuth();
+
     const [email, setEmail] = React.useState('');
     const [password, setPassword] = React.useState('');
     const [error, setError] = React.useState('');
     const [loading, setLoading] = React.useState(false);
 
-    const handleLogin = (e) => {
+    const handleLogin = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError('');
 
-        // Validación por campo vacío
-        if (!email && !password) {
+        if (!email || !password) {
             setError('Por favor, ingresa tu correo y contraseña.');
-        } else if (!email) {
-            setError('Por favor, ingresa tu correo electrónico.');
-        } else if (!password) {
-            setError('Por favor, ingresa tu contraseña.');
-        } else {
-            // Simulamos una llamada a una API
-            setTimeout(() => {
-                if (email === 'test@example.com' && password === '123456') {
-                    alert('Inicio de sesión exitoso');
-                } else {
-                    setError('Correo o contraseña incorrectos.');
-                }
-                setLoading(false);
-            }, 1000);
+            setLoading(false);
+            return;
         }
+
+        const res = await login(email, password);
+        setLoading(false);
+
+        if (!res.ok) {
+            setError(res.error || 'Correo o contraseña incorrectos.');
+            return;
+        }
+
+        // Redirigir según tipo (usa getDashboardRoute del contexto)
+        navigate(getDashboardRoute());
     };
 
     return (
@@ -39,6 +41,7 @@ export const LoginPage = () => {
             <div className="glass-card">
                 <form onSubmit={handleLogin}>
                     <h2>Iniciar Sesión</h2>
+
                     {error && <p className="error">{error}</p>}
 
                     <div className="form-group">
@@ -62,7 +65,7 @@ export const LoginPage = () => {
                     </div>
 
                     <div className="form-options">
-                        <NavLink to="/recuperar">¿Olvidaste tu contraseña?</NavLink>
+                        <Link to="/recuperar">¿Olvidaste tu contraseña?</Link>
                     </div>
 
                     <button type="submit" disabled={loading} className="login-button">
