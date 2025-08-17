@@ -1,12 +1,13 @@
+// pages/RegisterPage.js
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../modules/auth/AuthContext';
-import '../styles/variables.css'; 
+import '../styles/variables.css';
 
 export const RegisterPage = () => {
     const navigate = useNavigate();
-    const { login } = useAuth();
-    
+    const { register, getDashboardRoute } = useAuth();
+
     const [userType, setUserType] = React.useState('buyer');
     const [formData, setFormData] = React.useState({
         name: '',
@@ -25,60 +26,53 @@ export const RegisterPage = () => {
         setFormData((prev) => ({ ...prev, [name]: value }));
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError('');
 
-        // Validaciones
+        // Validaciones frontend
         if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
             setError('Por favor, completa todos los campos obligatorios.');
             setLoading(false);
             return;
         }
-
         if (formData.password !== formData.confirmPassword) {
             setError('Las contraseñas no coinciden.');
             setLoading(false);
             return;
         }
-
         if (formData.password.length < 6) {
             setError('La contraseña debe tener al menos 6 caracteres.');
             setLoading(false);
             return;
         }
-
         if (userType === 'seller' && !formData.businessName.trim()) {
             setError('Por favor, ingresa el nombre del negocio.');
             setLoading(false);
             return;
         }
 
-        // Simular registro exitoso
-        setTimeout(() => {
-            const userData = {
-                id: Date.now(),
-                email: formData.email,
-                name: formData.name,
-                userType: userType,
-                businessName: userType === 'seller' ? formData.businessName : null,
-                phone: formData.phone,
-                address: formData.address
-            };
+        // Llamar a backend
+        const res = await register({
+            name: formData.name,
+            email: formData.email,
+            password: formData.password,
+            userType,
+            businessName: userType === 'seller' ? formData.businessName : null,
+            phone: formData.phone || null,
+            address: formData.address || null
+        });
 
-            // Registrar y logear automáticamente
-            login(userData);
+        setLoading(false);
 
-            // Redireccionar según tipo de usuario
-            if (userType === 'seller') {
-                navigate('/seller/dashboard');
-            } else {
-                navigate('/buyer/dashboard');
-            }
+        if (!res.ok) {
+            setError(res.error || 'No se pudo registrar.');
+            return;
+        }
 
-            setLoading(false);
-        }, 1500);
+        // Redirigir según tipo
+        navigate(getDashboardRoute());
     };
 
     return (
@@ -88,7 +82,7 @@ export const RegisterPage = () => {
                 {error && <p className="error">{error}</p>}
 
                 <form onSubmit={handleSubmit}>
-                    {/* Selector de tipo de usuario */}
+                    {/* Selector tipo de usuario */}
                     <div className="user-type-selector">
                         <button
                             type="button"
@@ -106,7 +100,7 @@ export const RegisterPage = () => {
                         </button>
                     </div>
 
-                    {/* Información básica */}
+                    {/* Básico */}
                     <div className="form-group">
                         <label>Nombre completo: *</label>
                         <input
@@ -129,7 +123,7 @@ export const RegisterPage = () => {
                         />
                     </div>
 
-                    {/* Nombre del negocio (solo para vendedores) */}
+                    {/* Solo vendedores */}
                     {userType === 'seller' && (
                         <div className="form-group">
                             <label>Nombre del negocio/marca: *</label>
@@ -143,7 +137,7 @@ export const RegisterPage = () => {
                         </div>
                     )}
 
-                    {/* Información de contacto */}
+                    {/* Contacto */}
                     <div className="form-group">
                         <label>Teléfono:</label>
                         <input
@@ -166,7 +160,7 @@ export const RegisterPage = () => {
                         />
                     </div>
 
-                    {/* Contraseñas */}
+                    {/* Passwords */}
                     <div className="form-group">
                         <label>Contraseña: *</label>
                         <input
@@ -187,37 +181,6 @@ export const RegisterPage = () => {
                             onChange={handleChange}
                             placeholder="••••••••"
                         />
-                    </div>
-
-                    {/* Información según tipo de usuario */}
-                    <div style={{ 
-                        background: 'rgba(255, 87, 34, 0.1)', 
-                        padding: '1rem', 
-                        borderRadius: '8px', 
-                        marginBottom: '1rem',
-                        border: '1px solid rgba(255, 87, 34, 0.3)'
-                    }}>
-                        {userType === 'buyer' ? (
-                            <div>
-                                <h4 style={{ margin: '0 0 0.5rem 0', color: '#ff5722' }}>Como Comprador podrás:</h4>
-                                <ul style={{ fontSize: '0.85rem', color: '#ccc', margin: 0, paddingLeft: '1.2rem' }}>
-                                    <li>Explorar y comprar productos artesanales</li>
-                                    <li>Gestionar tu carrito y pedidos</li>
-                                    <li>Seguimiento de entregas</li>
-                                    <li>Guardar productos favoritos</li>
-                                </ul>
-                            </div>
-                        ) : (
-                            <div>
-                                <h4 style={{ margin: '0 0 0.5rem 0', color: '#ff5722' }}>Como Vendedor podrás:</h4>
-                                <ul style={{ fontSize: '0.85rem', color: '#ccc', margin: 0, paddingLeft: '1.2rem' }}>
-                                    <li>Crear y gestionar tu tienda</li>
-                                    <li>Publicar tus productos artesanales</li>
-                                    <li>Administrar inventario y pedidos</li>
-                                    <li>Ver estadísticas de ventas</li>
-                                </ul>
-                            </div>
-                        )}
                     </div>
 
                     <button type="submit" disabled={loading} className="login-button">
