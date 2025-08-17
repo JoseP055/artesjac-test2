@@ -9,20 +9,19 @@ export const Footer = () => {
         <h2 className="footer-logo">ArtesJAC</h2>
 
         <div className="footer-subscribe">
-          <input type="email" placeholder="Your Email" />
-          <button>SUBSCRIBE</button>
+          <input type="email" placeholder="Tu correo electrónico" />
+          <button>SUSCRIBIRME</button>
         </div>
 
         <div className="footer-links">
-          <NavLink to="/shop">Featured Art</NavLink>
-          <NavLink to="/shop">Craft Ideas</NavLink>
-          <NavLink to="/shop">New Arrivals</NavLink>
-          <NavLink to="/shop">Special Offers</NavLink>
-          <NavLink to="#">Support</NavLink>
+          <NavLink to="/shop">Arte Destacado</NavLink>
+          <NavLink to="/shop">Ideas de Artesanía</NavLink>
+          <NavLink to="/shop">Novedades</NavLink>
+          <NavLink to="/shop">Ofertas Especiales</NavLink>
         </div>
 
-        <p className="footer-help">Contact us: +506 8888 8888</p>
-        <p className="footer-copy">© 2025 ArtesJAC. All rights reserved.</p>
+        <p className="footer-help">Contáctanos: +506 8888 8888</p>
+        <p className="footer-copy">© 2025 ArtesJAC. Todos los derechos reservados.</p>
       </div>
     </footer>
   );

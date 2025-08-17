@@ -36,23 +36,22 @@ export const Navbar = () => {
 
     return (
         <header className={`navbar ${isSticky ? 'sticky' : ''}`}>
-            {/* Top Links */}
+            {/* Enlaces superiores */}
             <div className="navbar-top">
                 <div className="navbar-top-links">
-                    <NavLink to="/shop">Featured Art</NavLink>
-                    <NavLink to="/shop">Craft Ideas</NavLink>
-                    <NavLink to="/shop">New Arrivals</NavLink>
-                    <NavLink to="/shop">Special Offers</NavLink>
-                    <NavLink to="/shop">Help Center</NavLink>
+                    <NavLink to="/shop">Arte Destacado</NavLink>
+                    <NavLink to="/shop">Ideas de Artesanía</NavLink>
+                    <NavLink to="/shop">Novedades</NavLink>
+                    <NavLink to="/shop">Ofertas Especiales</NavLink>
                 </div>
             </div>
 
-            {/* Main Navbar */}
+            {/* Barra principal */}
             <div className="navbar-main">
-                {/* Navigation Links */}
+                {/* Enlaces de navegación */}
                 <nav className="navbar-links">
                     <NavLink to="/"><span className='logo-text'>ArtesJAC</span></NavLink>
-                    <NavLink to="/">Home</NavLink>
+                    <NavLink to="/">Inicio</NavLink>
 
                     {/* Enlaces específicos según tipo de usuario */}
                     {isAuthenticated() ? (
@@ -60,12 +59,12 @@ export const Navbar = () => {
                             {isBuyer() && (
                                 <>
                                     <NavLink to="/shop">Tienda</NavLink>
-                                    <NavLink to="/buyer/dashboard">Mi Dashboard</NavLink>
+                                    <NavLink to="/buyer/dashboard">Mi Panel</NavLink>
                                 </>
                             )}
                             {isSeller() && (
                                 <>
-                                    <NavLink to="/seller/dashboard">Mi Dashboard</NavLink>
+                                    <NavLink to="/seller/dashboard">Mi Panel</NavLink>
                                     <NavLink to="/seller/products">Mis Productos</NavLink>
                                     <NavLink to="/seller/orders">Pedidos</NavLink>
                                 </>
@@ -76,28 +75,13 @@ export const Navbar = () => {
                     )}
                 </nav>
 
-                {/* Language, Cart & Auth */}
+                {/* Acciones: Carrito y Autenticación */}
                 <div className="navbar-actions">
-                    {/* Language */}
-                    <div className="language-selector">
-                        <button className="language-button">
-                            <img src={us} className="language-flag" alt="EN" /> English <i className="fa fa-angle-down"></i>
-                        </button>
-                        <div className="language-menu">
-                            <NavLink to="#">
-                                <img src={mx} className="language-flag" alt="ESP" /> Español
-                            </NavLink>
-                            <NavLink to="#">
-                                <img src={mk} className="language-flag" alt="MLK" /> Maleku
-                            </NavLink>
-                        </div>
-                    </div>
-
-                    {/* Cart - Solo para compradores */}
+                    {/* Carrito - Solo para compradores o usuarios no autenticados */}
                     {(isBuyer() || !isAuthenticated()) && (
                         <div className="navbar-cart">
-                            <NavLink to="/cart">
-                                <i className="fa fa-shopping-cart"></i> <span>Cart</span>
+                            <NavLink to="/cart" aria-label="Ir al carrito">
+                                <i className="fa fa-shopping-cart"></i> <span>Carrito</span>
                             </NavLink>
                         </div>
                     )}
@@ -108,6 +92,8 @@ export const Navbar = () => {
                             <button
                                 className="user-menu-button"
                                 onClick={() => setShowUserMenu(!showUserMenu)}
+                                aria-expanded={showUserMenu}
+                                aria-haspopup="menu"
                             >
                                 <div className="user-avatar-small">
                                     {isSeller() ? (
@@ -126,7 +112,7 @@ export const Navbar = () => {
                             </button>
 
                             {showUserMenu && (
-                                <div className="user-dropdown-menu">
+                                <div className="user-dropdown-menu" role="menu">
                                     <div className="user-dropdown-header">
                                         <strong>{user?.name}</strong>
                                         <span className="user-email">{user?.email}</span>
@@ -138,7 +124,7 @@ export const Navbar = () => {
                                     <div className="user-dropdown-links">
                                         <button onClick={handleDashboardClick} className="dropdown-link">
                                             <i className="fa fa-tachometer-alt"></i>
-                                            Dashboard
+                                            Panel
                                         </button>
 
                                         <NavLink to="/profile" className="dropdown-link" onClick={() => setShowUserMenu(false)}>
@@ -170,17 +156,17 @@ export const Navbar = () => {
 
                                         <button onClick={handleLogout} className="dropdown-link logout">
                                             <i className="fa fa-sign-out-alt"></i>
-                                            Cerrar Sesión
+                                            Cerrar sesión
                                         </button>
                                     </div>
                                 </div>
                             )}
                         </div>
                     ) : (
-                        /* Login/Register Auth - Solo si no está autenticado */
+                        /* Enlaces de Login/Registro - Solo si no está autenticado */
                         <div className="navbar-auth">
                             <NavLink to="/login" className="auth-link">
-                                <i className="fa fa-sign-in-alt"></i> Iniciar Sesión
+                                <i className="fa fa-sign-in-alt"></i> Iniciar sesión
                             </NavLink>
                             <span className="auth-divider">|</span>
                             <NavLink to="/register" className="auth-link">
