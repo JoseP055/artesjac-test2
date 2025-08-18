@@ -10,7 +10,7 @@ import { CartPage } from '../pages/CartPage';
 import { CheckoutPage } from '../pages/CheckoutPage';
 import { LoginPage } from '../pages/LoginPage';
 import { RegisterPage } from '../pages/RegisterPage';
-import { RecoverPasswordPage } from '../pages/RecoverPasswordPage'; // Nuevo componente
+import { RecoverPasswordPage } from '../pages/RecoverPasswordPage';
 import { ProfilePage } from '../pages/ProfilePage';
 import { ProductPage } from '../pages/ProductPage';
 import { OrdersPage } from '../pages/OrdersPage';
@@ -23,6 +23,7 @@ import { SellerInventory } from '../pages/dashboards/SellerInventory';
 import { SellerOrders } from '../pages/dashboards/SellerOrders';
 import { SellerStoreProfile } from '../pages/dashboards/SellerStoreProfile';
 import { SellerAnalytics } from '../pages/dashboards/SellerAnalytics';
+import { SellerProfile } from '../pages/SellerProfile';
 
 export const AppRouter = () => {
     return (
@@ -51,6 +52,9 @@ export const AppRouter = () => {
                             <Route path='/electronic' element={<ShopPage />} />
                             <Route path='/jewellery' element={<ShopPage />} />
                             <Route path='/product/:id' element={<ProductPage />} />
+
+                            {/* ===== PERFIL DE VENDEDOR (PÚBLICO) ===== */}
+                            <Route path='/seller-profile/:sellerId' element={<SellerProfile />} />
 
                             {/* ===== DASHBOARDS PROTEGIDOS ===== */}
                             <Route path='/buyer/dashboard' element={

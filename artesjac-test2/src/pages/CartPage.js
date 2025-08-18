@@ -1,220 +1,231 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../modules/auth/AuthContext';
 import '../styles/cart.css';
 
 export const CartPage = () => {
+    const { user } = useAuth();
     const navigate = useNavigate();
     const [cartItems, setCartItems] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    // Cargar carrito desde localStorage al iniciar
     useEffect(() => {
-        const loadCart = () => {
-            try {
-                const savedCart = localStorage.getItem('artesjac-cart');
-                if (savedCart && savedCart !== 'null' && savedCart !== '[]') {
-                    const cart = JSON.parse(savedCart);
-                    setCartItems(cart);
-                } else {
-                    setCartItems([]);
-                }
-            } catch (error) {
-                console.error('Error al cargar carrito:', error);
-                setCartItems([]);
-            }
-            setIsLoading(false);
-        };
-
-        loadCart();
+        loadCartItems();
     }, []);
 
-    // Guardar carrito en localStorage cuando cambie
-    useEffect(() => {
-        if (!isLoading) {
-            localStorage.setItem('artesjac-cart', JSON.stringify(cartItems));
+    const loadCartItems = () => {
+        try {
+            const savedCart = localStorage.getItem('artesjac-cart');
+            if (savedCart && savedCart !== 'null') {
+                const cart = JSON.parse(savedCart);
+                setCartItems(cart);
+            }
+        } catch (error) {
+            console.error('Error al cargar carrito:', error);
+        } finally {
+            setIsLoading(false);
         }
-    }, [cartItems, isLoading]);
-
-    // 🔄 Función para sincronizar estado y localStorage
-    const syncCart = (newCart) => {
-        setCartItems(newCart);
-        localStorage.setItem('artesjac-cart', JSON.stringify(newCart));
     };
 
-    // Actualizar cantidad
     const updateQuantity = (productId, newQuantity) => {
-        if (newQuantity <= 0) {
+        if (newQuantity < 1) {
             removeItem(productId);
             return;
         }
 
-        const updated = cartItems.map(item =>
+        const updatedCart = cartItems.map(item =>
             item.id === productId ? { ...item, quantity: newQuantity } : item
         );
-        syncCart(updated);
+
+        setCartItems(updatedCart);
+        localStorage.setItem('artesjac-cart', JSON.stringify(updatedCart));
     };
 
-    // Eliminar un producto
     const removeItem = (productId) => {
-        const newCart = cartItems.filter(item => item.id !== productId);
-        syncCart(newCart);
+        const updatedCart = cartItems.filter(item => item.id !== productId);
+        setCartItems(updatedCart);
+        localStorage.setItem('artesjac-cart', JSON.stringify(updatedCart));
     };
 
-    // Vaciar todo el carrito
     const clearCart = () => {
-        if (window.confirm('¿Estás seguro de que quieres vaciar el carrito?')) {
-            syncCart([]);
+        if (window.confirm('¿Estás seguro de que deseas vaciar el carrito?')) {
+            setCartItems([]);
+            localStorage.setItem('artesjac-cart', JSON.stringify([]));
         }
     };
 
-    // Calcular totales
-    const calculateTotal = () => {
+    const calculateSubtotal = () => {
         return cartItems.reduce((total, item) => total + (item.numericPrice * item.quantity), 0);
     };
 
-    const getTotalItems = () => {
-        return cartItems.reduce((total, item) => total + item.quantity, 0);
+    const calculateShipping = () => {
+        const subtotal = calculateSubtotal();
+        return subtotal >= 50000 ? 0 : 3500; // Envío gratis para compras mayores a ₡50,000
+    };
+
+    const calculateTotal = () => {
+        return calculateSubtotal() + calculateShipping();
     };
 
     const handleCheckout = () => {
-        if (cartItems.length > 0) {
-            navigate('/checkout');
+        if (cartItems.length === 0) {
+            alert('Tu carrito está vacío');
+            return;
         }
+        navigate('/checkout');
     };
 
-    // Cargando...
     if (isLoading) {
         return (
-            <main className="cart-container">
-                <div style={{
-                    textAlign: 'center',
-                    padding: '4rem 2rem',
-                    backgroundColor: '#1f1f1f',
-                    borderRadius: '12px',
-                    marginTop: '2rem'
-                }}>
-                    <i className="fa fa-spinner fa-spin" style={{ fontSize: '3rem', color: '#ff5722', marginBottom: '1rem' }}></i>
-                    <h2>Cargando carrito...</h2>
+            <div className="cart-container">
+                <div className="loading-container">
+                    <div className="loading-spinner"></div>
+                    <p>Cargando carrito...</p>
                 </div>
-            </main>
+            </div>
         );
     }
 
-    // Carrito vacío
-    if (cartItems.length === 0) {
-        return (
-            <main className="cart-container">
-                <div className="cart-empty">
-                    <i className="fa fa-shopping-cart" style={{ fontSize: '4rem', color: '#666', marginBottom: '1rem' }}></i>
-                    <h2>Tu carrito está vacío</h2>
-                    <p>¡Descubre nuestros productos artesanales y agrega algunos al carrito!</p>
-                    <Link to="/shop" className="btn-continue-shopping">
-                        <i className="fa fa-arrow-left"></i> Continuar comprando
-                    </Link>
-                </div>
-            </main>
-        );
-    }
-
-    // Carrito con productos
     return (
-        <main className="cart-container">
+        <div className="cart-container">
             <div className="cart-header">
-                <h1>Tu Carrito</h1>
-                <p>{getTotalItems()} producto{getTotalItems() !== 1 ? 's' : ''} en tu carrito</p>
+                <h1>🛒 Mi Carrito de Compras</h1>
+                <p>{cartItems.length} productos en tu carrito</p>
             </div>
 
-            <div className="cart-content">
-                <div className="cart-items">
-                    {cartItems.map(item => (
-                        <div key={item.id} className="cart-item">
-                            <div className="item-image">
-                                <div className="product-image-sim"></div>
-                            </div>
+            {cartItems.length === 0 ? (
+                <div className="empty-cart">
+                    <i className="fa fa-shopping-cart"></i>
+                    <h2>Tu carrito está vacío</h2>
+                    <p>¡Descubre productos únicos y artesanales!</p>
+                    <Link to="/shop" className="btn-continue-shopping">
+                        <i className="fa fa-arrow-left"></i>
+                        Continuar comprando
+                    </Link>
+                </div>
+            ) : (
+                <div className="cart-content">
+                    <div className="cart-items">
+                        <div className="cart-items-header">
+                            <h2>Productos en tu carrito</h2>
+                            <button onClick={clearCart} className="btn-clear-cart">
+                                <i className="fa fa-trash"></i>
+                                Vaciar carrito
+                            </button>
+                        </div>
 
-                            <div className="item-info">
-                                <Link to={`/product/${item.id}`} className="item-name">
-                                    {item.name}
-                                </Link>
-                                <p className="item-category">
-                                    Categoría: {item.category.charAt(0).toUpperCase() + item.category.slice(1)}
-                                </p>
-                                <p className="item-price">{item.price}</p>
-                            </div>
+                        <div className="items-list">
+                            {cartItems.map(item => (
+                                <div key={item.id} className="cart-item">
+                                    <div className="item-image">
+                                        <div className="product-image-sim"></div>
+                                    </div>
 
-                            <div className="item-controls">
-                                <div className="quantity-controls">
+                                    <div className="item-details">
+                                        <Link to={`/product/${item.id}`} className="item-name">
+                                            {item.name}
+                                        </Link>
+                                        <p className="item-category">{item.category}</p>
+                                        <p className="item-price">₡{item.numericPrice.toLocaleString()}</p>
+                                    </div>
+
+                                    <div className="item-quantity">
+                                        <button
+                                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                            className="quantity-btn"
+                                        >
+                                            <i className="fa fa-minus"></i>
+                                        </button>
+                                        <span className="quantity-display">{item.quantity}</span>
+                                        <button
+                                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                            className="quantity-btn"
+                                        >
+                                            <i className="fa fa-plus"></i>
+                                        </button>
+                                    </div>
+
+                                    <div className="item-total">
+                                        ₡{(item.numericPrice * item.quantity).toLocaleString()}
+                                    </div>
+
                                     <button
-                                        className="quantity-btn"
-                                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                        onClick={() => removeItem(item.id)}
+                                        className="btn-remove-item"
+                                        title="Eliminar producto"
                                     >
-                                        <i className="fa fa-minus"></i>
-                                    </button>
-                                    <span className="quantity-display">{item.quantity}</span>
-                                    <button
-                                        className="quantity-btn"
-                                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                                    >
-                                        <i className="fa fa-plus"></i>
+                                        <i className="fa fa-times"></i>
                                     </button>
                                 </div>
+                            ))}
+                        </div>
+                    </div>
 
-                                <p className="item-subtotal">
-                                    Subtotal: ₡{(item.numericPrice * item.quantity).toLocaleString()}
-                                </p>
+                    <div className="cart-summary">
+                        <div className="summary-card">
+                            <h3>Resumen del Pedido</h3>
 
-                                <button
-                                    className="btn-remove"
-                                    onClick={() => removeItem(item.id)}
-                                >
-                                    <i className="fa fa-trash"></i> Eliminar
-                                </button>
+                            <div className="summary-line">
+                                <span>Subtotal ({cartItems.length} productos):</span>
+                                <span>₡{calculateSubtotal().toLocaleString()}</span>
+                            </div>
+
+                            <div className="summary-line">
+                                <span>Envío:</span>
+                                <span>
+                                    {calculateShipping() === 0 ? 'Gratis' : `₡${calculateShipping().toLocaleString()}`}
+                                </span>
+                            </div>
+
+                            {calculateShipping() === 0 && (
+                                <div className="free-shipping-notice">
+                                    <i className="fa fa-check-circle"></i>
+                                    ¡Felicidades! Tu pedido tiene envío gratis
+                                </div>
+                            )}
+
+                            {calculateShipping() > 0 && (
+                                <div className="shipping-notice">
+                                    <i className="fa fa-info-circle"></i>
+                                    Agrega ₡{(50000 - calculateSubtotal()).toLocaleString()} más para envío gratis
+                                </div>
+                            )}
+
+                            <div className="summary-line total">
+                                <span>Total:</span>
+                                <span>₡{calculateTotal().toLocaleString()}</span>
+                            </div>
+
+                            <button onClick={handleCheckout} className="btn-checkout">
+                                <i className="fa fa-credit-card"></i>
+                                Proceder al Pago
+                            </button>
+
+                            <div className="security-badges">
+                                <div className="security-item">
+                                    <i className="fa fa-shield-alt"></i>
+                                    <span>Compra Segura</span>
+                                </div>
+                                <div className="security-item">
+                                    <i className="fa fa-truck"></i>
+                                    <span>Envío a Todo CR</span>
+                                </div>
+                                <div className="security-item">
+                                    <i className="fa fa-undo"></i>
+                                    <span>Garantía de Calidad</span>
+                                </div>
                             </div>
                         </div>
-                    ))}
-                </div>
 
-                <div className="cart-summary">
-                    <div className="summary-card">
-                        <h3>Resumen del pedido</h3>
-
-                        <div className="summary-row">
-                            <span>Productos ({getTotalItems()})</span>
-                            <span>₡{calculateTotal().toLocaleString()}</span>
-                        </div>
-
-                        <div className="summary-row">
-                            <span>Envío</span>
-                            <span>Gratis</span>
-                        </div>
-
-                        <div className="summary-row total">
-                            <span>Total</span>
-                            <span>₡{calculateTotal().toLocaleString()}</span>
-                        </div>
-
-                        <div className="cart-actions">
-                            <button
-                                className="btn-checkout"
-                                onClick={handleCheckout}
-                            >
-                                <i className="fa fa-credit-card"></i> Proceder al pago
-                            </button>
-
+                        <div className="continue-shopping">
                             <Link to="/shop" className="btn-continue-shopping">
-                                <i className="fa fa-arrow-left"></i> Continuar comprando
+                                <i className="fa fa-arrow-left"></i>
+                                Continuar comprando
                             </Link>
-
-                            <button
-                                className="btn-clear-cart"
-                                onClick={clearCart}
-                            >
-                                <i className="fa fa-trash"></i> Vaciar carrito
-                            </button>
                         </div>
                     </div>
                 </div>
-            </div>
-        </main>
+            )}
+        </div>
     );
 };

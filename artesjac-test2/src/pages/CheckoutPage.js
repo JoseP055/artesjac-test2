@@ -1,661 +1,595 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../modules/auth/AuthContext';
 import '../styles/checkout.css';
 
 export const CheckoutPage = () => {
+    const { user } = useAuth();
     const navigate = useNavigate();
-
-    // Cargar productos del carrito desde localStorage
     const [cartItems, setCartItems] = useState([]);
-    const [isLoadingCart, setIsLoadingCart] = useState(true);
-    const [countdown, setCountdown] = useState(3);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [currentStep, setCurrentStep] = useState(1);
 
-    // Estados para los formularios
-    const [personalInfo, setPersonalInfo] = useState({
-        firstName: '',
-        lastName: '',
-        email: '',
-        phone: ''
-    });
-
-    const [shippingInfo, setShippingInfo] = useState({
+    const [shippingData, setShippingData] = useState({
+        fullName: user?.name || '',
+        email: user?.email || '',
+        phone: '',
         address: '',
         city: '',
-        province: '',
+        province: 'San José',
         postalCode: '',
-        country: 'Costa Rica'
+        specialInstructions: ''
     });
 
-    const [paymentInfo, setPaymentInfo] = useState({
-        paymentMethod: 'card',
+    const [paymentData, setPaymentData] = useState({
+        method: 'card',
         cardNumber: '',
         expiryDate: '',
         cvv: '',
-        cardName: ''
+        cardName: '',
+        bankTransfer: {
+            bank: '',
+            accountType: 'current'
+        }
     });
 
-    const [errors, setErrors] = useState({});
-    const [isProcessing, setIsProcessing] = useState(false);
+    const provinces = [
+        'San José', 'Alajuela', 'Cartago', 'Heredia',
+        'Guanacaste', 'Puntarenas', 'Limón'
+    ];
 
-    // Debug: Verificar localStorage al cargar la página
+    const banks = [
+        'Banco Nacional de Costa Rica',
+        'Banco de Costa Rica',
+        'BAC San José',
+        'Scotiabank',
+        'Banco Popular',
+        'Banco Promerica'
+    ];
+
     useEffect(() => {
-        console.log('CheckoutPage montado');
-        console.log('localStorage artesjac-cart:', localStorage.getItem('artesjac-cart'));
+        loadCartItems();
     }, []);
 
-    // Cargar carrito desde localStorage
-    useEffect(() => {
-        const loadCart = () => {
-            try {
-                const savedCart = localStorage.getItem('artesjac-cart');
-                console.log('Raw localStorage:', savedCart);
-                
-                if (savedCart && savedCart !== 'null' && savedCart !== '[]') {
-                    const cart = JSON.parse(savedCart);
-                    console.log('Carrito parseado:', cart);
-                    
-                    if (Array.isArray(cart) && cart.length > 0) {
-                        setCartItems(cart);
-                        console.log('Carrito cargado exitosamente:', cart.length, 'items');
-                    } else {
-                        console.log('Carrito está vacío o no es válido');
-                        setCartItems([]);
-                    }
-                } else {
-                    console.log('No hay carrito guardado o está vacío');
-                    setCartItems([]);
+    const loadCartItems = () => {
+        try {
+            const savedCart = localStorage.getItem('artesjac-cart');
+            if (savedCart && savedCart !== 'null') {
+                const cart = JSON.parse(savedCart);
+                if (cart.length === 0) {
+                    navigate('/cart');
+                    return;
                 }
-            } catch (error) {
-                console.error('Error al cargar carrito:', error);
-                setCartItems([]);
+                setCartItems(cart);
+            } else {
+                navigate('/cart');
+                return;
             }
-            
-            setIsLoadingCart(false);
-        };
-
-        // Pequeño delay para asegurar que el DOM esté listo
-        const timer = setTimeout(loadCart, 300);
-        return () => clearTimeout(timer);
-    }, []);
-
-    // Redirigir si el carrito está vacío SOLO después de cargar
-    useEffect(() => {
-        if (!isLoadingCart && cartItems.length === 0) {
-            console.log('Carrito vacío, iniciando cuenta regresiva...');
-            
-            // Cuenta regresiva
-            const countdownTimer = setInterval(() => {
-                setCountdown(prev => {
-                    if (prev <= 1) {
-                        clearInterval(countdownTimer);
-                        navigate('/cart');
-                        return 0;
-                    }
-                    return prev - 1;
-                });
-            }, 1000);
-
-            return () => clearInterval(countdownTimer);
+        } catch (error) {
+            console.error('Error al cargar carrito:', error);
+            navigate('/cart');
+        } finally {
+            setIsLoading(false);
         }
-    }, [cartItems, navigate, isLoadingCart]);
+    };
 
-    // Funciones para manejar cambios en los formularios
-    const handlePersonalChange = (e) => {
-        setPersonalInfo({
-            ...personalInfo,
-            [e.target.name]: e.target.value
-        });
-        // Limpiar error si existe
-        if (errors[e.target.name]) {
-            setErrors(prev => ({
+    const handleShippingChange = (field, value) => {
+        setShippingData(prev => ({
+            ...prev,
+            [field]: value
+        }));
+    };
+
+    const handlePaymentChange = (field, value) => {
+        if (field.includes('.')) {
+            const [parent, child] = field.split('.');
+            setPaymentData(prev => ({
                 ...prev,
-                [e.target.name]: ''
+                [parent]: {
+                    ...prev[parent],
+                    [child]: value
+                }
+            }));
+        } else {
+            setPaymentData(prev => ({
+                ...prev,
+                [field]: value
             }));
         }
     };
 
-    const handleShippingChange = (e) => {
-        setShippingInfo({
-            ...shippingInfo,
-            [e.target.name]: e.target.value
-        });
-        // Limpiar error si existe
-        if (errors[e.target.name]) {
-            setErrors(prev => ({
-                ...prev,
-                [e.target.name]: ''
-            }));
-        }
+    const validateStep1 = () => {
+        const required = ['fullName', 'email', 'phone', 'address', 'city', 'province'];
+        return required.every(field => shippingData[field].trim() !== '');
     };
 
-    const handlePaymentChange = (e) => {
-        setPaymentInfo({
-            ...paymentInfo,
-            [e.target.name]: e.target.value
-        });
-        // Limpiar error si existe
-        if (errors[e.target.name]) {
-            setErrors(prev => ({
-                ...prev,
-                [e.target.name]: ''
-            }));
+    const validateStep2 = () => {
+        if (paymentData.method === 'card') {
+            const required = ['cardNumber', 'expiryDate', 'cvv', 'cardName'];
+            return required.every(field => paymentData[field].trim() !== '');
+        } else if (paymentData.method === 'bank_transfer') {
+            return paymentData.bankTransfer.bank !== '';
         }
+        return true; // Para efectivo
     };
 
-    // Validación de formularios
-    const validateForm = () => {
-        const newErrors = {};
-
-        // Validar información personal
-        if (!personalInfo.firstName.trim()) newErrors.firstName = 'Nombre es requerido';
-        if (!personalInfo.lastName.trim()) newErrors.lastName = 'Apellido es requerido';
-        if (!personalInfo.email.trim()) {
-            newErrors.email = 'Email es requerido';
-        } else if (!/\S+@\S+\.\S+/.test(personalInfo.email)) {
-            newErrors.email = 'Email no es válido';
-        }
-        if (!personalInfo.phone.trim()) newErrors.phone = 'Teléfono es requerido';
-
-        // Validar dirección
-        if (!shippingInfo.address.trim()) newErrors.address = 'Dirección es requerida';
-        if (!shippingInfo.city.trim()) newErrors.city = 'Ciudad es requerida';
-        if (!shippingInfo.province.trim()) newErrors.province = 'Provincia es requerida';
-
-        // Validar pago (solo para tarjeta)
-        if (paymentInfo.paymentMethod === 'card') {
-            if (!paymentInfo.cardNumber.trim()) {
-                newErrors.cardNumber = 'Número de tarjeta es requerido';
-            } else if (paymentInfo.cardNumber.replace(/\s/g, '').length < 13) {
-                newErrors.cardNumber = 'Número de tarjeta no es válido';
-            }
-            if (!paymentInfo.expiryDate.trim()) {
-                newErrors.expiryDate = 'Fecha de vencimiento es requerida';
-            } else if (!/^\d{2}\/\d{2}$/.test(paymentInfo.expiryDate)) {
-                newErrors.expiryDate = 'Formato debe ser MM/AA';
-            }
-            if (!paymentInfo.cvv.trim()) {
-                newErrors.cvv = 'CVV es requerido';
-            } else if (paymentInfo.cvv.length < 3) {
-                newErrors.cvv = 'CVV debe tener 3-4 dígitos';
-            }
-            if (!paymentInfo.cardName.trim()) newErrors.cardName = 'Nombre en la tarjeta es requerido';
-        }
-
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
-    };
-
-    // Calcular totales
     const calculateSubtotal = () => {
         return cartItems.reduce((total, item) => total + (item.numericPrice * item.quantity), 0);
     };
 
-    const shippingCost = calculateSubtotal() > 50000 ? 0 : 2500; // Envío gratis para compras > ₡50,000
-    const tax = calculateSubtotal() * 0.13; // 13% IVA en Costa Rica
-    const total = calculateSubtotal() + shippingCost + tax;
+    const calculateShipping = () => {
+        const subtotal = calculateSubtotal();
+        return subtotal >= 50000 ? 0 : 3500;
+    };
 
-    // Formatear número de tarjeta con espacios
-    const formatCardNumber = (value) => {
-        const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-        const matches = v.match(/\d{4,16}/g);
-        const match = matches && matches[0] || '';
-        const parts = [];
-        for (let i = 0, len = match.length; i < len; i += 4) {
-            parts.push(match.substring(i, i + 4));
-        }
-        if (parts.length) {
-            return parts.join(' ');
-        } else {
-            return v;
+    const calculateTotal = () => {
+        return calculateSubtotal() + calculateShipping();
+    };
+
+    const handleNextStep = () => {
+        if (currentStep === 1 && validateStep1()) {
+            setCurrentStep(2);
+        } else if (currentStep === 2 && validateStep2()) {
+            setCurrentStep(3);
         }
     };
 
-    // Formatear fecha de expiración
-    const formatExpiryDate = (value) => {
-        const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-        if (v.length >= 2) {
-            return v.substring(0, 2) + '/' + v.substring(2, 4);
+    const handlePreviousStep = () => {
+        if (currentStep > 1) {
+            setCurrentStep(currentStep - 1);
         }
-        return v;
     };
 
-    // Manejar formato de número de tarjeta
-    const handleCardNumberChange = (e) => {
-        const formatted = formatCardNumber(e.target.value);
-        setPaymentInfo({
-            ...paymentInfo,
-            cardNumber: formatted
-        });
-    };
-
-    // Manejar formato de fecha de expiración
-    const handleExpiryDateChange = (e) => {
-        const formatted = formatExpiryDate(e.target.value);
-        setPaymentInfo({
-            ...paymentInfo,
-            expiryDate: formatted
-        });
-    };
-
-    // Procesar pedido
-    const handlePlaceOrder = async (e) => {
-        e.preventDefault();
-        
-        if (!validateForm()) {
-            // Hacer scroll al primer error
-            const firstError = document.querySelector('.error');
-            if (firstError) {
-                firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
+    const handleSubmitOrder = async () => {
+        if (!validateStep1() || !validateStep2()) {
+            alert('Por favor completa todos los campos requeridos');
             return;
         }
 
         setIsProcessing(true);
 
-        // Simular procesamiento del pedido
-        setTimeout(() => {
-            setIsProcessing(false);
-            const orderId = 'ORD-' + Date.now().toString().slice(-6);
-            
-            // Guardar información del pedido para la confirmación
+        try {
+            // Simular procesamiento del pedido
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            const orderId = `ORD-${Date.now()}`;
             const orderData = {
-                orderId,
-                personalInfo,
-                shippingInfo,
-                paymentInfo,
+                id: orderId,
+                date: new Date().toISOString(),
+                customer: shippingData,
+                payment: paymentData,
                 items: cartItems,
-                totals: {
-                    subtotal: calculateSubtotal(),
-                    shipping: shippingCost,
-                    tax: Math.round(tax),
-                    total: Math.round(total)
-                }
+                subtotal: calculateSubtotal(),
+                shipping: calculateShipping(),
+                total: calculateTotal(),
+                status: 'pendiente'
             };
-            
-            localStorage.setItem('last-order', JSON.stringify(orderData));
-            navigate(`/order-confirmation?orderId=${orderId}`);
-        }, 2000);
+
+            // Guardar pedido
+            const existingOrders = JSON.parse(localStorage.getItem(`buyer_orders_${user.id}`) || '[]');
+            existingOrders.push(orderData);
+            localStorage.setItem(`buyer_orders_${user.id}`, JSON.stringify(existingOrders));
+
+            // Limpiar carrito
+            localStorage.setItem('artesjac-cart', JSON.stringify([]));
+
+            // Redirigir a confirmación
+            navigate(`/order-confirmation/${orderId}`);
+
+        } catch (error) {
+            console.error('Error al procesar pedido:', error);
+            alert('Error al procesar el pedido. Por favor intenta de nuevo.');
+        } finally {
+            setIsProcessing(false);
+        }
     };
 
-    // Mostrar loading si está cargando el carrito
-    if (isLoadingCart) {
+    if (isLoading) {
         return (
-            <div className="checkout-page">
-                <div className="checkout-container">
-                    <div className="checkout-loading">
-                        <i className="fa fa-spinner fa-spin"></i>
-                        <h2>Cargando checkout...</h2>
-                        <p>Verificando productos en el carrito</p>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    // Mostrar mensaje si el carrito está vacío
-    if (cartItems.length === 0) {
-        return (
-            <div className="checkout-page">
-                <div className="checkout-container">
-                    <div className="checkout-empty">
-                        <i className="fa fa-shopping-cart"></i>
-                        <h2>Tu carrito está vacío</h2>
-                        <p>No hay productos para proceder al checkout</p>
-                        
-                        <div className="countdown-box">
-                            <p className="countdown-text">
-                                Redirigiendo al carrito en {countdown} segundo{countdown !== 1 ? 's' : ''}...
-                            </p>
-                            <div className="countdown-progress">
-                                <div 
-                                    className="countdown-progress-bar"
-                                    style={{ width: `${((3 - countdown) / 3) * 100}%` }}
-                                ></div>
-                            </div>
-                        </div>
-
-                        <div className="empty-cart-actions">
-                            <Link to="/shop" className="shop-btn">
-                                Ir a la tienda
-                            </Link>
-                            <Link to="/cart" className="cart-btn">
-                                Ver carrito ahora
-                            </Link>
-                        </div>
-
-                        <div className="debug-info">
-                            <strong>Debug Info:</strong><br/>
-                            localStorage: {localStorage.getItem('artesjac-cart') || 'null'}<br/>
-                            cartItems.length: {cartItems.length}<br/>
-                            isLoadingCart: {isLoadingCart.toString()}
-                        </div>
-                    </div>
+            <div className="checkout-container">
+                <div className="loading-container">
+                    <div className="loading-spinner"></div>
+                    <p>Cargando información del pedido...</p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="checkout-page">
-            <div className="checkout-container">
-                <h1 className="checkout-title">Finalizar Compra</h1>
+        <div className="checkout-container">
+            <div className="checkout-header">
+                <h1>🛒 Finalizar Compra</h1>
+                <div className="checkout-steps">
+                    <div className={`step ${currentStep >= 1 ? 'active' : ''} ${currentStep > 1 ? 'completed' : ''}`}>
+                        <span className="step-number">1</span>
+                        <span className="step-label">Envío</span>
+                    </div>
+                    <div className={`step ${currentStep >= 2 ? 'active' : ''} ${currentStep > 2 ? 'completed' : ''}`}>
+                        <span className="step-number">2</span>
+                        <span className="step-label">Pago</span>
+                    </div>
+                    <div className={`step ${currentStep >= 3 ? 'active' : ''}`}>
+                        <span className="step-number">3</span>
+                        <span className="step-label">Confirmar</span>
+                    </div>
+                </div>
+            </div>
 
-                <div className="checkout-content">
-                    {/* Formularios */}
-                    <div className="checkout-forms">
-                        {/* Información Personal */}
-                        <div className="form-section">
-                            <h2 className="section-title">
-                                <i className="fa fa-user"></i>
-                                Información Personal
-                            </h2>
+            <div className="checkout-content">
+                <div className="checkout-form">
+                    {/* Paso 1: Información de Envío */}
+                    {currentStep === 1 && (
+                        <div className="checkout-step">
+                            <h2>📦 Información de Envío</h2>
                             <div className="form-grid">
                                 <div className="form-group">
-                                    <label>Nombre *</label>
+                                    <label>Nombre Completo *</label>
                                     <input
                                         type="text"
-                                        name="firstName"
-                                        value={personalInfo.firstName}
-                                        onChange={handlePersonalChange}
-                                        className={errors.firstName ? 'error' : ''}
-                                        placeholder="Tu nombre"
+                                        value={shippingData.fullName}
+                                        onChange={(e) => handleShippingChange('fullName', e.target.value)}
+                                        placeholder="Tu nombre completo"
+                                        required
                                     />
-                                    {errors.firstName && <span className="error-message">{errors.firstName}</span>}
                                 </div>
+
                                 <div className="form-group">
-                                    <label>Apellido *</label>
-                                    <input
-                                        type="text"
-                                        name="lastName"
-                                        value={personalInfo.lastName}
-                                        onChange={handlePersonalChange}
-                                        className={errors.lastName ? 'error' : ''}
-                                        placeholder="Tu apellido"
-                                    />
-                                    {errors.lastName && <span className="error-message">{errors.lastName}</span>}
-                                </div>
-                                <div className="form-group">
-                                    <label>Email *</label>
+                                    <label>Correo Electrónico *</label>
                                     <input
                                         type="email"
-                                        name="email"
-                                        value={personalInfo.email}
-                                        onChange={handlePersonalChange}
-                                        className={errors.email ? 'error' : ''}
+                                        value={shippingData.email}
+                                        onChange={(e) => handleShippingChange('email', e.target.value)}
                                         placeholder="tu@email.com"
+                                        required
                                     />
-                                    {errors.email && <span className="error-message">{errors.email}</span>}
                                 </div>
+
                                 <div className="form-group">
                                     <label>Teléfono *</label>
                                     <input
                                         type="tel"
-                                        name="phone"
-                                        value={personalInfo.phone}
-                                        onChange={handlePersonalChange}
-                                        className={errors.phone ? 'error' : ''}
-                                        placeholder="8888-8888"
+                                        value={shippingData.phone}
+                                        onChange={(e) => handleShippingChange('phone', e.target.value)}
+                                        placeholder="+506 8888-8888"
+                                        required
                                     />
-                                    {errors.phone && <span className="error-message">{errors.phone}</span>}
                                 </div>
-                            </div>
-                        </div>
 
-                        {/* Dirección de Envío */}
-                        <div className="form-section">
-                            <h2 className="section-title">
-                                <i className="fa fa-truck"></i>
-                                Dirección de Envío
-                            </h2>
-                            <div className="form-grid">
+                                <div className="form-group">
+                                    <label>Provincia *</label>
+                                    <select
+                                        value={shippingData.province}
+                                        onChange={(e) => handleShippingChange('province', e.target.value)}
+                                        required
+                                    >
+                                        {provinces.map(province => (
+                                            <option key={province} value={province}>{province}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
                                 <div className="form-group full-width">
-                                    <label>Dirección *</label>
+                                    <label>Dirección Completa *</label>
                                     <input
                                         type="text"
-                                        name="address"
-                                        value={shippingInfo.address}
-                                        onChange={handleShippingChange}
-                                        className={errors.address ? 'error' : ''}
-                                        placeholder="Calle, número, detalles"
+                                        value={shippingData.address}
+                                        onChange={(e) => handleShippingChange('address', e.target.value)}
+                                        placeholder="Dirección exacta de entrega"
+                                        required
                                     />
-                                    {errors.address && <span className="error-message">{errors.address}</span>}
                                 </div>
+
                                 <div className="form-group">
                                     <label>Ciudad *</label>
                                     <input
                                         type="text"
-                                        name="city"
-                                        value={shippingInfo.city}
-                                        onChange={handleShippingChange}
-                                        className={errors.city ? 'error' : ''}
-                                        placeholder="San José"
+                                        value={shippingData.city}
+                                        onChange={(e) => handleShippingChange('city', e.target.value)}
+                                        placeholder="Ciudad"
+                                        required
                                     />
-                                    {errors.city && <span className="error-message">{errors.city}</span>}
                                 </div>
-                                <div className="form-group">
-                                    <label>Provincia *</label>
-                                    <select
-                                        name="province"
-                                        value={shippingInfo.province}
-                                        onChange={handleShippingChange}
-                                        className={errors.province ? 'error' : ''}
-                                    >
-                                        <option value="">Seleccionar provincia</option>
-                                        <option value="San José">San José</option>
-                                        <option value="Alajuela">Alajuela</option>
-                                        <option value="Cartago">Cartago</option>
-                                        <option value="Heredia">Heredia</option>
-                                        <option value="Guanacaste">Guanacaste</option>
-                                        <option value="Puntarenas">Puntarenas</option>
-                                        <option value="Limón">Limón</option>
-                                    </select>
-                                    {errors.province && <span className="error-message">{errors.province}</span>}
-                                </div>
+
                                 <div className="form-group">
                                     <label>Código Postal</label>
                                     <input
                                         type="text"
-                                        name="postalCode"
-                                        value={shippingInfo.postalCode}
-                                        onChange={handleShippingChange}
-                                        placeholder="10101"
+                                        value={shippingData.postalCode}
+                                        onChange={(e) => handleShippingChange('postalCode', e.target.value)}
+                                        placeholder="Código postal"
+                                    />
+                                </div>
+
+                                <div className="form-group full-width">
+                                    <label>Instrucciones Especiales</label>
+                                    <textarea
+                                        value={shippingData.specialInstructions}
+                                        onChange={(e) => handleShippingChange('specialInstructions', e.target.value)}
+                                        placeholder="Indicaciones adicionales para la entrega..."
+                                        rows="3"
                                     />
                                 </div>
                             </div>
                         </div>
+                    )}
 
-                        {/* Método de Pago */}
-                        <div className="form-section">
-                            <h2 className="section-title">
-                                <i className="fa fa-credit-card"></i>
-                                Método de Pago
-                            </h2>
-                            
+                    {/* Paso 2: Método de Pago */}
+                    {currentStep === 2 && (
+                        <div className="checkout-step">
+                            <h2>💳 Método de Pago</h2>
+
                             <div className="payment-methods">
-                                <label className="payment-option">
+                                <div className="payment-method">
                                     <input
                                         type="radio"
+                                        id="card"
                                         name="paymentMethod"
                                         value="card"
-                                        checked={paymentInfo.paymentMethod === 'card'}
-                                        onChange={handlePaymentChange}
+                                        checked={paymentData.method === 'card'}
+                                        onChange={(e) => handlePaymentChange('method', e.target.value)}
                                     />
-                                    <span className="payment-label">
+                                    <label htmlFor="card">
                                         <i className="fa fa-credit-card"></i>
                                         Tarjeta de Crédito/Débito
-                                    </span>
-                                </label>
-                                <label className="payment-option">
+                                    </label>
+                                </div>
+
+                                <div className="payment-method">
                                     <input
                                         type="radio"
+                                        id="bank_transfer"
                                         name="paymentMethod"
-                                        value="sinpe"
-                                        checked={paymentInfo.paymentMethod === 'sinpe'}
-                                        onChange={handlePaymentChange}
+                                        value="bank_transfer"
+                                        checked={paymentData.method === 'bank_transfer'}
+                                        onChange={(e) => handlePaymentChange('method', e.target.value)}
                                     />
-                                    <span className="payment-label">
-                                        <i className="fa fa-mobile"></i>
-                                        SINPE Móvil
-                                    </span>
-                                </label>
+                                    <label htmlFor="bank_transfer">
+                                        <i className="fa fa-university"></i>
+                                        Transferencia Bancaria
+                                    </label>
+                                </div>
+
+                                <div className="payment-method">
+                                    <input
+                                        type="radio"
+                                        id="cash"
+                                        name="paymentMethod"
+                                        value="cash"
+                                        checked={paymentData.method === 'cash'}
+                                        onChange={(e) => handlePaymentChange('method', e.target.value)}
+                                    />
+                                    <label htmlFor="cash">
+                                        <i className="fa fa-money-bill"></i>
+                                        Efectivo (Contra Entrega)
+                                    </label>
+                                </div>
                             </div>
 
-                            {paymentInfo.paymentMethod === 'card' && (
-                                <div className="form-grid">
-                                    <div className="form-group full-width">
-                                        <label>Número de Tarjeta *</label>
-                                        <input
-                                            type="text"
-                                            name="cardNumber"
-                                            value={paymentInfo.cardNumber}
-                                            onChange={handleCardNumberChange}
-                                            className={errors.cardNumber ? 'error' : ''}
-                                            placeholder="1234 5678 9012 3456"
-                                            maxLength="19"
-                                        />
-                                        {errors.cardNumber && <span className="error-message">{errors.cardNumber}</span>}
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Fecha de Vencimiento *</label>
-                                        <input
-                                            type="text"
-                                            name="expiryDate"
-                                            value={paymentInfo.expiryDate}
-                                            onChange={handleExpiryDateChange}
-                                            className={errors.expiryDate ? 'error' : ''}
-                                            placeholder="MM/AA"
-                                            maxLength="5"
-                                        />
-                                        {errors.expiryDate && <span className="error-message">{errors.expiryDate}</span>}
-                                    </div>
-                                    <div className="form-group">
-                                        <label>CVV *</label>
-                                        <input
-                                            type="text"
-                                            name="cvv"
-                                            value={paymentInfo.cvv}
-                                            onChange={handlePaymentChange}
-                                            className={errors.cvv ? 'error' : ''}
-                                            placeholder="123"
-                                            maxLength="4"
-                                        />
-                                        {errors.cvv && <span className="error-message">{errors.cvv}</span>}
-                                    </div>
-                                    <div className="form-group full-width">
-                                        <label>Nombre en la Tarjeta *</label>
-                                        <input
-                                            type="text"
-                                            name="cardName"
-                                            value={paymentInfo.cardName}
-                                            onChange={handlePaymentChange}
-                                            className={errors.cardName ? 'error' : ''}
-                                            placeholder="Nombre como aparece en la tarjeta"
-                                        />
-                                        {errors.cardName && <span className="error-message">{errors.cardName}</span>}
+                            {paymentData.method === 'card' && (
+                                <div className="payment-form">
+                                    <div className="form-grid">
+                                        <div className="form-group full-width">
+                                            <label>Número de Tarjeta *</label>
+                                            <input
+                                                type="text"
+                                                value={paymentData.cardNumber}
+                                                onChange={(e) => handlePaymentChange('cardNumber', e.target.value)}
+                                                placeholder="1234 5678 9012 3456"
+                                                maxLength="19"
+                                                required
+                                            />
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label>Fecha de Vencimiento *</label>
+                                            <input
+                                                type="text"
+                                                value={paymentData.expiryDate}
+                                                onChange={(e) => handlePaymentChange('expiryDate', e.target.value)}
+                                                placeholder="MM/AA"
+                                                maxLength="5"
+                                                required
+                                            />
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label>CVV *</label>
+                                            <input
+                                                type="text"
+                                                value={paymentData.cvv}
+                                                onChange={(e) => handlePaymentChange('cvv', e.target.value)}
+                                                placeholder="123"
+                                                maxLength="4"
+                                                required
+                                            />
+                                        </div>
+
+                                        <div className="form-group full-width">
+                                            <label>Nombre en la Tarjeta *</label>
+                                            <input
+                                                type="text"
+                                                value={paymentData.cardName}
+                                                onChange={(e) => handlePaymentChange('cardName', e.target.value)}
+                                                placeholder="Nombre como aparece en la tarjeta"
+                                                required
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             )}
 
-                            {paymentInfo.paymentMethod === 'sinpe' && (
-                                <div className="sinpe-info">
-                                    <p>Realizarás el pago via SINPE Móvil al número: <strong>8888-8888</strong></p>
-                                    <p>Una vez realizado el pedido, recibirás las instrucciones completas por email.</p>
+                            {paymentData.method === 'bank_transfer' && (
+                                <div className="payment-form">
+                                    <div className="form-grid">
+                                        <div className="form-group">
+                                            <label>Banco *</label>
+                                            <select
+                                                value={paymentData.bankTransfer.bank}
+                                                onChange={(e) => handlePaymentChange('bankTransfer.bank', e.target.value)}
+                                                required
+                                            >
+                                                <option value="">Selecciona tu banco</option>
+                                                {banks.map(bank => (
+                                                    <option key={bank} value={bank}>{bank}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label>Tipo de Cuenta</label>
+                                            <select
+                                                value={paymentData.bankTransfer.accountType}
+                                                onChange={(e) => handlePaymentChange('bankTransfer.accountType', e.target.value)}
+                                            >
+                                                <option value="current">Cuenta Corriente</option>
+                                                <option value="savings">Cuenta de Ahorros</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div className="transfer-info">
+                                        <p><strong>Información para la transferencia:</strong></p>
+                                        <p>Te enviaremos los detalles bancarios por correo después de confirmar el pedido.</p>
+                                    </div>
                                 </div>
+                            )}
+
+                            {paymentData.method === 'cash' && (
+                                <div className="cash-info">
+                                    <div className="info-box">
+                                        <i className="fa fa-info-circle"></i>
+                                        <div>
+                                            <h4>Pago Contra Entrega</h4>
+                                            <p>Pagarás en efectivo al momento de recibir tu pedido. Asegúrate de tener el monto exacto.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Paso 3: Confirmación */}
+                    {currentStep === 3 && (
+                        <div className="checkout-step">
+                            <h2>✅ Confirmar Pedido</h2>
+
+                            <div className="confirmation-sections">
+                                <div className="confirmation-section">
+                                    <h3>📦 Información de Envío</h3>
+                                    <div className="confirmation-data">
+                                        <p><strong>{shippingData.fullName}</strong></p>
+                                        <p>{shippingData.email}</p>
+                                        <p>{shippingData.phone}</p>
+                                        <p>{shippingData.address}</p>
+                                        <p>{shippingData.city}, {shippingData.province}</p>
+                                        {shippingData.specialInstructions && (
+                                            <p><em>Instrucciones: {shippingData.specialInstructions}</em></p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="confirmation-section">
+                                    <h3>💳 Método de Pago</h3>
+                                    <div className="confirmation-data">
+                                        {paymentData.method === 'card' && (
+                                            <p>Tarjeta terminada en ****{paymentData.cardNumber.slice(-4)}</p>
+                                        )}
+                                        {paymentData.method === 'bank_transfer' && (
+                                            <p>Transferencia - {paymentData.bankTransfer.bank}</p>
+                                        )}
+                                        {paymentData.method === 'cash' && (
+                                            <p>Efectivo contra entrega</p>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Botones de Navegación */}
+                    <div className="checkout-navigation">
+                        <div className="nav-buttons">
+                            {currentStep > 1 && (
+                                <button onClick={handlePreviousStep} className="btn-previous">
+                                    <i className="fa fa-arrow-left"></i>
+                                    Anterior
+                                </button>
+                            )}
+
+                            {currentStep < 3 ? (
+                                <button
+                                    onClick={handleNextStep}
+                                    className="btn-next"
+                                    disabled={(currentStep === 1 && !validateStep1()) || (currentStep === 2 && !validateStep2())}
+                                >
+                                    Siguiente
+                                    <i className="fa fa-arrow-right"></i>
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={handleSubmitOrder}
+                                    className="btn-place-order"
+                                    disabled={isProcessing}
+                                >
+                                    {isProcessing ? (
+                                        <>
+                                            <i className="fa fa-spinner fa-spin"></i>
+                                            Procesando...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <i className="fa fa-check"></i>
+                                            Confirmar Pedido
+                                        </>
+                                    )}
+                                </button>
                             )}
                         </div>
                     </div>
+                </div>
 
-                    {/* Resumen del Pedido */}
-                    <div className="order-summary">
-                        <h2 className="summary-title">Resumen del Pedido</h2>
-                        
+                {/* Resumen del Pedido */}
+                <div className="order-summary">
+                    <div className="summary-card">
+                        <h3>Resumen del Pedido</h3>
+
                         <div className="summary-items">
                             {cartItems.map(item => (
                                 <div key={item.id} className="summary-item">
                                     <div className="item-info">
-                                        <h4>{item.name}</h4>
-                                        <p>Categoría: {item.category.charAt(0).toUpperCase() + item.category.slice(1)}</p>
-                                        <p>Cantidad: {item.quantity}</p>
+                                        <span className="item-name">{item.name}</span>
+                                        <span className="item-qty">x{item.quantity}</span>
                                     </div>
-                                    <div className="item-price">
+                                    <span className="item-total">
                                         ₡{(item.numericPrice * item.quantity).toLocaleString()}
-                                    </div>
+                                    </span>
                                 </div>
                             ))}
                         </div>
 
                         <div className="summary-totals">
-                            <div className="total-row">
+                            <div className="summary-line">
                                 <span>Subtotal:</span>
                                 <span>₡{calculateSubtotal().toLocaleString()}</span>
                             </div>
-                            <div className="total-row">
+                            <div className="summary-line">
                                 <span>Envío:</span>
                                 <span>
-                                    {shippingCost === 0 ? (
-                                        <span className="shipping-free">¡Gratis!</span>
-                                    ) : (
-                                        `₡${shippingCost.toLocaleString()}`
-                                    )}
+                                    {calculateShipping() === 0 ? 'Gratis' : `₡${calculateShipping().toLocaleString()}`}
                                 </span>
                             </div>
-                            {calculateSubtotal() < 50000 && shippingCost > 0 && (
-                                <div className="shipping-note">
-                                    <small>
-                                        Envío gratis en compras mayores a ₡50.000
-                                    </small>
-                                </div>
-                            )}
-                            <div className="total-row">
-                                <span>IVA (13%):</span>
-                                <span>₡{Math.round(tax).toLocaleString()}</span>
-                            </div>
-                            <div className="total-row final-total">
+                            <div className="summary-line total">
                                 <span>Total:</span>
-                                <span>₡{Math.round(total).toLocaleString()}</span>
-                            </div>
-                        </div>
-
-                        <button 
-                            className={`place-order-btn ${isProcessing ? 'processing' : ''}`}
-                            onClick={handlePlaceOrder}
-                            disabled={isProcessing}
-                        >
-                            {isProcessing ? (
-                                <>
-                                    <i className="fa fa-spinner fa-spin"></i>
-                                    Procesando...
-                                </>
-                            ) : (
-                                <>
-                                    <i className="fa fa-check"></i>
-                                    Realizar Pedido - ₡{Math.round(total).toLocaleString()}
-                                </>
-                            )}
-                        </button>
-
-                        <Link to="/cart" className="back-to-cart-btn">
-                            <i className="fa fa-arrow-left"></i>
-                            Volver al Carrito
-                        </Link>
-
-                        <div className="security-badges">
-                            <div className="security-badges-content">
-                                <div className="security-badge">
-                                    <i className="fa fa-shield-alt"></i>
-                                    <span>Pago 100% seguro</span>
-                                </div>
-                                <div className="security-badge">
-                                    <i className="fa fa-truck"></i>
-                                    <span>Envío a todo Costa Rica</span>
-                                </div>
-                                <div className="security-badge">
-                                    <i className="fa fa-undo"></i>
-                                    <span>30 días para devoluciones</span>
-                                </div>
+                                <span>₡{calculateTotal().toLocaleString()}</span>
                             </div>
                         </div>
                     </div>
+
+                    <Link to="/cart" className="btn-edit-cart">
+                        <i className="fa fa-edit"></i>
+                        Editar Carrito
+                    </Link>
                 </div>
             </div>
         </div>
