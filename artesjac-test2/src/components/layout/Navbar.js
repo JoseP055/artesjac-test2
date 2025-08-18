@@ -64,8 +64,9 @@ export const Navbar = () => {
                             )}
                             {isSeller() && (
                                 <>
+
                                     <NavLink to="/seller/dashboard">Mi Panel</NavLink>
-                                    <NavLink to="/seller/products">Mis Productos</NavLink>
+                                    <NavLink to="/seller/inventory">Mis Productos</NavLink>
                                     <NavLink to="/seller/orders">Pedidos</NavLink>
                                 </>
                             )}
@@ -127,7 +128,7 @@ export const Navbar = () => {
                                             Panel
                                         </button>
 
-                                        <NavLink to="/profile" className="dropdown-link" onClick={() => setShowUserMenu(false)}>
+                                        <NavLink to="/seller/store-profile" className="dropdown-link" onClick={() => setShowUserMenu(false)}>
                                             <i className="fa fa-user-cog"></i>
                                             Mi Perfil
                                         </NavLink>
@@ -141,7 +142,7 @@ export const Navbar = () => {
 
                                         {isSeller() && (
                                             <>
-                                                <NavLink to="/seller/products" className="dropdown-link" onClick={() => setShowUserMenu(false)}>
+                                                <NavLink to="/seller/inventory" className="dropdown-link" onClick={() => setShowUserMenu(false)}>
                                                     <i className="fa fa-boxes"></i>
                                                     Mis Productos
                                                 </NavLink>

@@ -54,7 +54,7 @@ a {
 }
 
 .home-button:hover {
-    background-color: #e64a19;
+    background-color: #e03e0d;
 }
 
 /* ==== CATEGORÍAS ==== */
@@ -88,7 +88,7 @@ a {
 }
 
 .category-card:hover {
-    background-color: #ff5722;
+    background-color: #1b1817;
     color: #fff;
     transform: translateY(-5px);
 }
