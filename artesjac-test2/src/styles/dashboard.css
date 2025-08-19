@@ -282,15 +282,29 @@
     background-color: #e64a19;
 }
 
-/* Acciones Rápidas */
+/* Acciones Rápidas - CORREGIDO */
 .actions-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(4, 1fr);
+    /* Forzar 4 columnas en una fila */
     gap: 1.5rem;
+    width: 100%;
 }
 
+/* Para vendedores, asegurar que se mantenga horizontal */
 .seller-actions .actions-grid {
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    grid-template-columns: repeat(4, 1fr);
+    /* Forzar 4 columnas */
+    gap: 1.2rem;
+}
+
+/* En pantallas medianas, usar 2 filas de 2 columnas */
+@media (max-width: 1024px) {
+
+    .actions-grid,
+    .seller-actions .actions-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
 
 .action-card {
@@ -302,6 +316,12 @@
     text-align: center;
     transition: all 0.3s ease;
     border: 2px solid #444;
+    min-height: 140px;
+    /* Altura mínima consistente */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
 }
 
 .action-card:hover {
@@ -654,8 +674,10 @@
         gap: 1rem;
     }
 
-    .actions-grid {
+    .actions-grid,
+    .seller-actions .actions-grid {
         grid-template-columns: 1fr;
+        /* En móvil, una columna */
     }
 
     .dashboard-grid {
