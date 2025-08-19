@@ -85,7 +85,7 @@ export const ProfilePage = () => {
         if (userInfo.userType === 'buyer') {
             return [
                 ...baseTabs.slice(0, 1),
-                { id: 'orders', icon: 'fa-shopping-bag', label: 'Mis Pedidos' },
+
                 { id: 'addresses', icon: 'fa-map-marker', label: 'Direcciones' },
                 ...baseTabs.slice(1)
             ];
@@ -224,6 +224,13 @@ export const ProfilePage = () => {
                         <div className="profile-stats">
                             {getProfileStats()}
                         </div>
+                        {userInfo.userType === 'buyer' && (
+                            <div className="profile-dashboard-action">
+                                <Link to="/buyer/dashboard" className="btn-dashboard">
+                                    <i className="fa fa-tachometer-alt"></i> Ir al Dashboard
+                                </Link>
+                            </div>
+                        )}
                     </div>
                 </div>
             </section>

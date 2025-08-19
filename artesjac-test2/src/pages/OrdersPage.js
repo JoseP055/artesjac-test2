@@ -4,7 +4,7 @@ import '../styles/orders.css';
 
 export const OrdersPage = () => {
     const { id } = useParams();
-    
+
     // Mock data de pedidos
     const orders = [
         {
@@ -78,7 +78,7 @@ export const OrdersPage = () => {
     // Si hay un ID específico, mostrar detalle del pedido
     if (id) {
         const order = orders.find(o => o.id === id);
-        
+
         if (!order) {
             return (
                 <main className="orders-container">
@@ -106,7 +106,7 @@ export const OrdersPage = () => {
                     <div className="order-summary-card">
                         <div className="order-status-section">
                             <h3>Estado del pedido</h3>
-                            <span 
+                            <span
                                 className="status-badge large"
                                 style={{ backgroundColor: getStatusColor(order.status) }}
                             >
@@ -142,7 +142,7 @@ export const OrdersPage = () => {
                                 </div>
                             ))}
                         </div>
-                        
+
                         <div className="order-total-section">
                             <div className="total-row">
                                 <span>Subtotal:</span>
@@ -169,6 +169,11 @@ export const OrdersPage = () => {
             <div className="orders-header">
                 <h1>Mis Pedidos</h1>
                 <p>{orders.length} pedidos realizados</p>
+                <div className="orders-dashboard-action">
+                    <Link to="/buyer/dashboard" className="btn-dashboard">
+                        <i className="fa fa-tachometer-alt"></i> Ir al Dashboard
+                    </Link>
+                </div>
             </div>
 
             <div className="orders-list">
@@ -180,7 +185,7 @@ export const OrdersPage = () => {
                                 <p className="order-date">{new Date(order.date).toLocaleDateString('es-CR')}</p>
                             </div>
                             <div className="order-status">
-                                <span 
+                                <span
                                     className="status-badge"
                                     style={{ backgroundColor: getStatusColor(order.status) }}
                                 >
@@ -188,7 +193,7 @@ export const OrdersPage = () => {
                                 </span>
                             </div>
                         </div>
-                        
+
                         <div className="order-card-content">
                             <div className="order-items-preview">
                                 <strong>Productos:</strong> {order.items.map(item => item.name).join(', ')}
