@@ -15,9 +15,7 @@ export const Footer = () => {
 
         <div className="footer-links">
           <NavLink to="/shop">Arte Destacado</NavLink>
-          <NavLink to="/shop">Ideas de Artesanía</NavLink>
-          <NavLink to="/shop">Novedades</NavLink>
-          <NavLink to="/shop">Ofertas Especiales</NavLink>
+
         </div>
 
         <p className="footer-help">Contáctanos: +506 8888 8888</p>
