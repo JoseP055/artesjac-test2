@@ -1,8 +1,8 @@
-// src/pages/ProductPage.js
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../modules/auth/AuthContext";
 import { ShopAPI } from "../api/shop.service";
+import { ReviewsAPI } from "../api/reviews.service";
 import { resolveImgUrl } from "../utils/resolveImgUrl";
 import noImage from "../assets/images/noimage.png";
 import "../styles/product.css";
@@ -32,13 +32,17 @@ const firstImg = (p) => {
     return candidate ? String(candidate).replace(/\\/g, "/") : null;
 };
 
+const isObjectId = (s) => /^[a-f\d]{24}$/i.test(String(s || ""));
+
 export const ProductPage = () => {
     // Soporta ruta /p/:slug o /product/:id (cualquiera de los dos)
     const params = useParams();
     const slugOrId = params.slug || params.id;
 
     const navigate = useNavigate();
-    const { user } = useAuth();
+    const { user, token } = useAuth() || {};
+    const authToken =
+        token || localStorage.getItem("token") || localStorage.getItem("authToken");
 
     const [product, setProduct] = useState(null);
     const [sellerInfo, setSellerInfo] = useState(null);
@@ -46,17 +50,36 @@ export const ProductPage = () => {
     const [quantity, setQuantity] = useState(1);
     const [addedToCart, setAddedToCart] = useState(false);
 
+    // --- Reviews del PRODUCTO (mismo UI) ---
     const [productReviews, setProductReviews] = useState([]);
     const [averageRating, setAverageRating] = useState(0);
-
     const [userRating, setUserRating] = useState(0);
     const [reviewComment, setReviewComment] = useState("");
     const [showReviewForm, setShowReviewForm] = useState(false);
 
-    // Cargar detalle + reseñas reales (públicas)
+    // --- Reviews de la TIENDA (mismo estilo de sección/cards/modales) ---
+    const [storeReviews, setStoreReviews] = useState([]);
+    const [storeAvg, setStoreAvg] = useState(0);
+    const [storeUserRating, setStoreUserRating] = useState(0);
+    const [storeReviewComment, setStoreReviewComment] = useState("");
+    const [showStoreReviewForm, setShowStoreReviewForm] = useState(false);
+
+    const renderStars = (rating, interactive = false, onStarClick = null) => (
+        <div className={`stars ${interactive ? "interactive" : ""}`}>
+            {[1, 2, 3, 4, 5].map((star) => (
+                <i
+                    key={star}
+                    className={`fa fa-star ${star <= Math.round(rating) ? "active" : ""}`}
+                    onClick={interactive ? () => onStarClick(star) : undefined}
+                />
+            ))}
+        </div>
+    );
+
+    // Cargar detalle + reseñas desde DB
     const load = async () => {
         try {
-            // Detalle por slugOrId (axios-like: res.data => { ok, data })
+            // Detalle por slugOrId
             const resDetail = await ShopAPI.get(slugOrId);
             const detail = resDetail?.data?.data;
             if (!detail) {
@@ -65,10 +88,12 @@ export const ProductPage = () => {
             }
             setProduct(detail);
 
-            // Vendedor público embebido
+            // Vendedor
             if (detail.vendorId) {
+                const vendorId =
+                    detail.vendorId._id || detail.vendorId.id || detail.vendorId;
                 setSellerInfo({
-                    id: detail.vendorId._id || detail.vendorId.id,
+                    id: vendorId,
                     businessName: detail.vendorId.companyName || detail.vendorId.name,
                     name: detail.vendorId.name,
                     role: detail.vendorId.role,
@@ -78,27 +103,61 @@ export const ProductPage = () => {
                 setSellerInfo(null);
             }
 
-            // Rating agregado desde el mismo detalle (si backend lo manda)
-            if (typeof detail.averageRating === "number") {
-                setAverageRating(detail.averageRating);
-            } else {
-                setAverageRating(0);
-            }
-
-            // Reseñas aprobadas públicas
+            // PRODUCT REVIEWS (DB)
             const pid = detail._id || detail.id;
             if (pid) {
-                const resReviews = await ShopAPI.reviews(pid, { page: 1, limit: 10 });
+                const resReviews = await ReviewsAPI.listProduct(pid, {
+                    page: 1,
+                    limit: 50,
+                });
                 const list = resReviews?.data?.data || [];
                 setProductReviews(list);
 
-                // Si el detalle no trae average, calcularlo localmente
-                if (typeof detail.averageRating !== "number") {
-                    const sum = list.reduce((acc, rv) => acc + (rv.rating || 0), 0);
-                    setAverageRating(list.length ? sum / list.length : 0);
+                const avg =
+                    list.reduce((acc, rv) => acc + (rv.rating || 0), 0) /
+                    (list.length || 1);
+                setAverageRating(list.length ? avg : 0);
+
+                // Si el usuario ya reseñó este producto, precarga para editar
+                const mine =
+                    user &&
+                    list.find(
+                        (r) => String(r.userId?._id || r.userId) === String(user.id)
+                    );
+                if (mine) {
+                    setUserRating(mine.rating);
+                    setReviewComment(mine.comment || "");
                 }
             } else {
                 setProductReviews([]);
+                setAverageRating(0);
+            }
+
+            // STORE REVIEWS (DB)
+            const vid =
+                detail.vendorId &&
+                (detail.vendorId._id || detail.vendorId.id || detail.vendorId);
+            if (vid && isObjectId(vid)) {
+                const r2 = await ReviewsAPI.listStore(vid, { page: 1, limit: 50 });
+                const list2 = r2?.data?.data || [];
+                setStoreReviews(list2);
+                const avg2 =
+                    list2.reduce((a, b) => a + (b.rating || 0), 0) /
+                    (list2.length || 1);
+                setStoreAvg(list2.length ? avg2 : 0);
+
+                const mine2 =
+                    user &&
+                    list2.find(
+                        (r) => String(r.userId?._id || r.userId) === String(user.id)
+                    );
+                if (mine2) {
+                    setStoreUserRating(mine2.rating);
+                    setStoreReviewComment(mine2.comment || "");
+                }
+            } else {
+                setStoreReviews([]);
+                setStoreAvg(0);
             }
         } catch (err) {
             console.error("Product detail error:", err?.response?.data || err.message);
@@ -111,7 +170,7 @@ export const ProductPage = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [slugOrId]);
 
-    // Agregar al carrito (compatibilidad: guarda id, name, etc.)
+    // Agregar al carrito (igual)
     const handleAddToCart = () => {
         if (!product) return;
 
@@ -151,68 +210,54 @@ export const ProductPage = () => {
         }
     };
 
-    // En esta versión seguimos usando localStorage para enviar reseñas (no hay POST público aún)
-    const handleSubmitReview = () => {
-        if (!user || userRating === 0 || !product) return;
-
-        const newReview = {
-            _id: `local_${Date.now()}`,
-            userId: { name: user.name || "Usuario" }, // para calzar con el shape público
-            rating: userRating,
-            comment: reviewComment,
-            createdAt: new Date().toISOString(),
-            _local: true, // flag local
-        };
-
+    // === Enviar/actualizar RESEÑA de PRODUCTO (1 por comprador) ===
+    const handleSubmitReview = async () => {
+        if (!user || user.userType !== "buyer" || !product || userRating === 0)
+            return;
         try {
-            const pid = product._id || product.id || product.slug;
-            const key = `product_reviews_${pid}`;
-            const existingLocal = localStorage.getItem(key);
-            const localArr = existingLocal ? JSON.parse(existingLocal) : [];
-
-            const updated = [newReview, ...productReviews, ...localArr];
-            localStorage.setItem(key, JSON.stringify(updated));
-            setProductReviews(updated);
-
-            // Recalcular promedio (local)
-            const sum = updated.reduce((acc, rv) => acc + (rv.rating || 0), 0);
-            setAverageRating(updated.length ? sum / updated.length : 0);
-
-            setUserRating(0);
-            setReviewComment("");
+            const pid = product._id || product.id;
+            await ReviewsAPI.upsertProduct(
+                { productId: pid, rating: userRating, comment: reviewComment },
+                authToken
+            );
+            await load();
             setShowReviewForm(false);
-            alert("¡Reseña enviada! (local)");
+            alert("¡Reseña del producto guardada!");
         } catch (error) {
             console.error("Error al guardar reseña:", error);
-            alert("Error al enviar la reseña");
+            alert(error?.response?.data?.error || "Error al enviar la reseña");
         }
     };
 
-    const renderStars = (rating, interactive = false, onStarClick = null) => (
-        <div className={`stars ${interactive ? "interactive" : ""}`}>
-            {[1, 2, 3, 4, 5].map((star) => (
-                <i
-                    key={star}
-                    className={`fa fa-star ${star <= Math.round(rating) ? "active" : ""}`}
-                    onClick={interactive ? () => onStarClick(star) : undefined}
-                />
-            ))}
-        </div>
-    );
-
-    // Fusión reseñas de API + locales (si las hay)
-    const mergedReviews = (() => {
-        if (!product) return [];
-        const pid = product._id || product.id || product.slug;
-        const key = `product_reviews_${pid}`;
-        let locals = [];
+    // === Enviar/actualizar RESEÑA de TIENDA (1 por comprador) ===
+    const handleSubmitStoreReview = async () => {
+        if (
+            !user ||
+            user.userType !== "buyer" ||
+            !sellerInfo ||
+            storeUserRating === 0
+        )
+            return;
         try {
-            const saved = localStorage.getItem(key);
-            locals = saved ? JSON.parse(saved) : [];
-        } catch { }
-        // Las del backend vienen con shape { userId: { name, avatar }, rating, comment, createdAt }
-        return [...locals, ...productReviews];
-    })();
+            await ReviewsAPI.upsertStore(
+                {
+                    vendorId: sellerInfo.id,
+                    rating: storeUserRating,
+                    comment: storeReviewComment,
+                },
+                authToken
+            );
+            await load();
+            setShowStoreReviewForm(false);
+            alert("¡Reseña de la tienda guardada!");
+        } catch (error) {
+            console.error("Error al guardar reseña tienda:", error);
+            alert(error?.response?.data?.error || "Error al enviar la reseña");
+        }
+    };
+
+    // En esta versión ya NO se usa localStorage para reseñas
+    const mergedReviews = productReviews;
 
     if (!product) {
         return (
@@ -267,7 +312,7 @@ export const ProductPage = () => {
                         {renderStars(averageRating)}
                         <span className="rating-text">
                             {averageRating > 0 ? averageRating.toFixed(1) : "Sin calificar"}
-                            {product.reviewsCount ? ` (${product.reviewsCount} reseñas)` : ""}
+                            {productReviews.length ? ` (${productReviews.length} reseñas)` : ""}
                         </span>
                     </div>
 
@@ -363,7 +408,10 @@ export const ProductPage = () => {
                         <div className="seller-header">
                             <div className="seller-avatar">
                                 {sellerInfo.avatar ? (
-                                    <img src={sellerInfo.avatar} alt={sellerInfo.businessName || sellerInfo.name} />
+                                    <img
+                                        src={sellerInfo.avatar}
+                                        alt={sellerInfo.businessName || sellerInfo.name}
+                                    />
                                 ) : (
                                     <i className="fa fa-store" />
                                 )}
@@ -371,22 +419,38 @@ export const ProductPage = () => {
                             <div className="seller-details">
                                 <h3>{sellerInfo.businessName || sellerInfo.name}</h3>
                                 {sellerInfo.role && (
-                                    <p className="seller-category">{String(sellerInfo.role).toUpperCase()}</p>
+                                    <p className="seller-category">
+                                        {String(sellerInfo.role).toUpperCase()}
+                                    </p>
                                 )}
                             </div>
                         </div>
 
                         <div className="seller-actions">
-                            {/* Ajustá esta ruta si tenés perfil público del vendedor */}
-                            <Link to={`/seller-profile/${sellerInfo.id || product.vendorId}`} className="btn-view-store">
+                            {/* Mantengo tu botón original */}
+                            <Link
+                                to={`/seller-profile/${sellerInfo.id || product.vendorId}`}
+                                className="btn-view-store"
+                            >
                                 <i className="fa fa-eye" /> Ver Tienda Completa
                             </Link>
+
+                            {/* Botón para evaluar TIENDA (mismo estilo de botón de reviews) */}
+                            {user && user.userType === "buyer" && isObjectId(sellerInfo.id) && (
+                                <button
+                                    onClick={() => setShowStoreReviewForm(true)}
+                                    className="btn-review-product"
+                                    style={{ marginLeft: 8 }}
+                                >
+                                    <i className="fa fa-star" /> Evaluar Tienda
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Reseñas del Producto */}
+            {/* Reseñas del Producto (mismo diseño) */}
             <div className="product-reviews-section">
                 <h2>⭐ Reseñas del Producto</h2>
                 {mergedReviews.length > 0 ? (
@@ -396,18 +460,28 @@ export const ProductPage = () => {
                                 <div className="review-header">
                                     <div className="reviewer-info">
                                         {review.userId?.avatar ? (
-                                            <img src={review.userId.avatar} alt={review.userId?.name} className="review-avatar" />
+                                            <img
+                                                src={review.userId.avatar}
+                                                alt={review.userId?.name}
+                                                className="review-avatar"
+                                            />
                                         ) : (
                                             <i className="fa fa-user-circle" />
                                         )}
-                                        <span>{review.userId?.name || review.userName || "Usuario"}</span>
+                                        <span>{review.userId?.name || "Usuario"}</span>
                                     </div>
-                                    <div className="review-rating">{renderStars(review.rating || 0)}</div>
+                                    <div className="review-rating">
+                                        {renderStars(review.rating || 0)}
+                                    </div>
                                 </div>
                                 <div className="review-date">
-                                    {new Date(review.createdAt || review.date).toLocaleDateString("es-CR")}
+                                    {new Date(review.createdAt || review.date).toLocaleDateString(
+                                        "es-CR"
+                                    )}
                                 </div>
-                                {review.comment && <div className="review-comment">{review.comment}</div>}
+                                {review.comment && (
+                                    <div className="review-comment">{review.comment}</div>
+                                )}
                             </div>
                         ))}
                     </div>
@@ -416,6 +490,46 @@ export const ProductPage = () => {
                 )}
             </div>
 
+            {/* Reseñas de la Tienda (mismo look & feel) */}
+            {sellerInfo && (
+                <div className="product-reviews-section">
+                    <h2>🏪 Reseñas de la Tienda</h2>
+                    {storeReviews.length > 0 ? (
+                        <div className="reviews-list">
+                            {storeReviews.slice(0, 10).map((review) => (
+                                <div key={review._id} className="review-item">
+                                    <div className="review-header">
+                                        <div className="reviewer-info">
+                                            {review.userId?.avatar ? (
+                                                <img
+                                                    src={review.userId.avatar}
+                                                    alt={review.userId?.name}
+                                                    className="review-avatar"
+                                                />
+                                            ) : (
+                                                <i className="fa fa-user-circle" />
+                                            )}
+                                            <span>{review.userId?.name || "Usuario"}</span>
+                                        </div>
+                                        <div className="review-rating">
+                                            {renderStars(review.rating || 0)}
+                                        </div>
+                                    </div>
+                                    <div className="review-date">
+                                        {new Date(review.createdAt).toLocaleDateString("es-CR")}
+                                    </div>
+                                    {review.comment && (
+                                        <div className="review-comment">{review.comment}</div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="no-reviews">Aún no hay reseñas para esta tienda.</p>
+                    )}
+                </div>
+            )}
+
             {/* Botón de regreso */}
             <div className="navigation-actions">
                 <Link to="/shop" className="btn-back">
@@ -423,13 +537,16 @@ export const ProductPage = () => {
                 </Link>
             </div>
 
-            {/* Modal para evaluar producto (local, sin POST aún) */}
+            {/* Modal para evaluar producto (mismo diseño) */}
             {showReviewForm && (
                 <div className="modal-overlay" onClick={() => setShowReviewForm(false)}>
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
                             <h2>Evaluar Producto</h2>
-                            <button onClick={() => setShowReviewForm(false)} className="modal-close">
+                            <button
+                                onClick={() => setShowReviewForm(false)}
+                                className="modal-close"
+                            >
                                 <i className="fa fa-times" />
                             </button>
                         </div>
@@ -449,10 +566,67 @@ export const ProductPage = () => {
                             </div>
                         </div>
                         <div className="modal-footer">
-                            <button onClick={() => setShowReviewForm(false)} className="btn-cancel">
+                            <button
+                                onClick={() => setShowReviewForm(false)}
+                                className="btn-cancel"
+                            >
                                 Cancelar
                             </button>
-                            <button onClick={handleSubmitReview} className="btn-submit" disabled={userRating === 0}>
+                            <button
+                                onClick={handleSubmitReview}
+                                className="btn-submit"
+                                disabled={userRating === 0}
+                            >
+                                Enviar Reseña
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal para evaluar TIENDA (mismo diseño) */}
+            {showStoreReviewForm && (
+                <div
+                    className="modal-overlay"
+                    onClick={() => setShowStoreReviewForm(false)}
+                >
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2>Evaluar Tienda</h2>
+                            <button
+                                onClick={() => setShowStoreReviewForm(false)}
+                                className="modal-close"
+                            >
+                                <i className="fa fa-times" />
+                            </button>
+                        </div>
+                        <div className="modal-body">
+                            <div className="rating-section">
+                                <label>Calificación de la tienda:</label>
+                                {renderStars(storeUserRating, true, setStoreUserRating)}
+                            </div>
+                            <div className="comment-section">
+                                <label>Comentario (opcional):</label>
+                                <textarea
+                                    value={storeReviewComment}
+                                    onChange={(e) => setStoreReviewComment(e.target.value)}
+                                    placeholder="¿Cómo fue tu experiencia con la tienda?"
+                                    rows={4}
+                                />
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button
+                                onClick={() => setShowStoreReviewForm(false)}
+                                className="btn-cancel"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={handleSubmitStoreReview}
+                                className="btn-submit"
+                                disabled={storeUserRating === 0}
+                            >
                                 Enviar Reseña
                             </button>
                         </div>
