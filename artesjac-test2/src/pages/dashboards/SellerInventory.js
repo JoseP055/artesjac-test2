@@ -49,7 +49,7 @@ const ImageWithFallback = ({ src, alt, className }) => {
 };
 
 export const SellerInventory = () => {
-    
+
 
     const [products, setProducts] = useState([]);
     const [filteredProducts, setFilteredProducts] = useState([]);
@@ -79,6 +79,8 @@ export const SellerInventory = () => {
         { value: "art", label: "Arte" },
         { value: "ceramics", label: "Cerámica" },
         { value: "textiles", label: "Textiles" },
+        { value: "sculpture", label: "Escultura" },
+        { value: "others", label: "Otros" },
     ];
 
     // 🔧 Cargar MIS productos (endpoint correcto)
@@ -451,10 +453,10 @@ export const SellerInventory = () => {
                                 <div className="table-cell stock">
                                     <span
                                         className={`stock-badge ${product.stock === 0
-                                                ? "no-stock"
-                                                : product.stock <= 5
-                                                    ? "low-stock"
-                                                    : "good-stock"
+                                            ? "no-stock"
+                                            : product.stock <= 5
+                                                ? "low-stock"
+                                                : "good-stock"
                                             }`}
                                     >
                                         {product.stock} unidades
