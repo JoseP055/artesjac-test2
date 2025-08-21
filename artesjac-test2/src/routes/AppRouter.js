@@ -1,10 +1,11 @@
-// src/router/AppRouter.jsx (o donde tengas este archivo)
+// src/routes/AppRouter.js
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from '../modules/auth/AuthContext';
 import { BuyerRoute, SellerRoute, AuthenticatedRoute } from '../components/ProtectedRoute';
 import { Navbar } from '../components/layout/Navbar';
 import { Footer } from '../components/layout/Footer';
+
 import { HomePage } from '../pages/HomePage';
 import { ShopPage } from '../pages/ShopPage';
 import { CartPage } from '../pages/CartPage';
@@ -20,7 +21,10 @@ import { NotFoundPage } from '../pages/NotFoundPage';
 import { BannerFullScreen } from '../components/ui/BannerFullScreen';
 import { BuyerDashboard } from '../pages/dashboards/BuyerDashboard';
 import { SellerDashboard } from '../pages/dashboards/SellerDashboard';
+
+
 import { SellerInventory } from '../pages/dashboards/SellerInventory';
+
 import { SellerOrders } from '../pages/dashboards/SellerOrders';
 import { SellerStoreProfile } from '../pages/dashboards/SellerStoreProfile';
 import { SellerAnalytics } from '../pages/dashboards/SellerAnalytics';
@@ -35,44 +39,39 @@ export const AppRouter = () => {
                     <header>
                         <Navbar />
                     </header>
-
                     <main>
                         <Routes>
-                            {/* ===== PÁGINAS PÚBLICAS ===== */}
-                            <Route path='/' element={<HomePage />} />
-                            <Route path='/home' element={<HomePage />} />
+                            {/* Públicas */}
+                            <Route path="/" element={<HomePage />} />
+                            <Route path="/home" element={<HomePage />} />
 
-                            {/* ===== AUTENTICACIÓN ===== */}
-                            <Route path='/login' element={<LoginPage />} />
-                            <Route path='/register' element={<RegisterPage />} />
-                            <Route path='/recuperar' element={<RecoverPasswordPage />} />
+                            {/* Auth */}
+                            <Route path="/login" element={<LoginPage />} />
+                            <Route path="/register" element={<RegisterPage />} />
+                            <Route path="/recuperar" element={<RecoverPasswordPage />} />
 
-                            {/* ===== TIENDA Y PRODUCTOS (PÚBLICO/COMPRADOR) ===== */}
-                            <Route path='/shop' element={<ShopPage />} />
-                            {/* Slug público para detalle de producto */}
-                            <Route path='/p/:slug' element={<ProductPage />} />
-                            {/* Compatibilidad con vistas antiguas por id */}
-                            <Route path='/product/:id' element={<ProductPage />} />
-                            {/* Si usás estas rutas como categorías estáticas, las dejamos apuntando a ShopPage */}
-                            <Route path='/fashion' element={<ShopPage />} />
-                            <Route path='/electronic' element={<ShopPage />} />
-                            <Route path='/jewellery' element={<ShopPage />} />
+                            {/* Tienda */}
+                            <Route path="/shop" element={<ShopPage />} />
+                            <Route path="/p/:slug" element={<ProductPage />} />
+                            <Route path="/product/:id" element={<ProductPage />} />
+                            <Route path="/fashion" element={<ShopPage />} />
+                            <Route path="/electronic" element={<ShopPage />} />
+                            <Route path="/jewellery" element={<ShopPage />} />
 
-                            {/* ===== PERFIL DE VENDEDOR (PÚBLICO) ===== */}
-                            <Route path='/seller-profile/:sellerId' element={<SellerProfile />} />
+                            {/* Perfil público de vendedor */}
+                            <Route path="/seller-profile/:sellerId" element={<SellerProfile />} />
 
-                            {/* ===== DASHBOARDS PROTEGIDOS ===== */}
+                            {/* Dashboards */}
                             <Route
-                                path='/buyer/dashboard'
+                                path="/buyer/dashboard"
                                 element={
                                     <BuyerRoute>
                                         <BuyerDashboard />
                                     </BuyerRoute>
                                 }
                             />
-
                             <Route
-                                path='/seller/dashboard'
+                                path="/seller/dashboard"
                                 element={
                                     <SellerRoute>
                                         <SellerDashboard />
@@ -80,36 +79,41 @@ export const AppRouter = () => {
                                 }
                             />
 
-                            {/* ===== RUTAS DE COMPRADOR ===== */}
+                            {/* Comprador */}
                             <Route
-                                path='/cart'
+                                path="/cart"
                                 element={
                                     <BuyerRoute>
                                         <CartPage />
                                     </BuyerRoute>
                                 }
                             />
-
                             <Route
-                                path='/checkout'
+                                path="/checkout"
                                 element={
                                     <BuyerRoute>
                                         <CheckoutPage />
                                     </BuyerRoute>
                                 }
                             />
-
                             <Route
-                                path='/order-confirmation/:id?'
+                                path="/order-confirmation/:id?"
                                 element={
                                     <BuyerRoute>
                                         <OrderConfirmation />
                                     </BuyerRoute>
                                 }
                             />
-
                             <Route
-                                path='/orders'
+                                path="/orders"
+                                element={
+                                    <BuyerRoute>
+                                        <OrdersPage />
+                                    </BuyerRoute>
+                                }
+                            />
+                            <Route
+                                path="/orders/:id"
                                 element={
                                     <BuyerRoute>
                                         <OrdersPage />
@@ -117,45 +121,33 @@ export const AppRouter = () => {
                                 }
                             />
 
+                            {/* Vendedor */}
                             <Route
-                                path='/orders/:id'
-                                element={
-                                    <BuyerRoute>
-                                        <OrdersPage />
-                                    </BuyerRoute>
-                                }
-                            />
-
-                            {/* ===== NUEVAS RUTAS DEL VENDEDOR ===== */}
-                            <Route
-                                path='/seller/inventory'
+                                path="/seller/inventory"
                                 element={
                                     <SellerRoute>
                                         <SellerInventory />
                                     </SellerRoute>
                                 }
                             />
-
                             <Route
-                                path='/seller/orders'
+                                path="/seller/orders"
                                 element={
                                     <SellerRoute>
                                         <SellerOrders />
                                     </SellerRoute>
                                 }
                             />
-
                             <Route
-                                path='/seller/store-profile'
+                                path="/seller/store-profile"
                                 element={
                                     <SellerRoute>
                                         <SellerStoreProfile />
                                     </SellerRoute>
                                 }
                             />
-
                             <Route
-                                path='/seller/analytics'
+                                path="/seller/analytics"
                                 element={
                                     <SellerRoute>
                                         <SellerAnalytics />
@@ -163,9 +155,9 @@ export const AppRouter = () => {
                                 }
                             />
 
-                            {/* ===== ÁREA DE USUARIO (AMBOS TIPOS) ===== */}
+                            {/* Perfil */}
                             <Route
-                                path='/profile'
+                                path="/profile"
                                 element={
                                     <AuthenticatedRoute>
                                         <ProfilePage />
@@ -173,14 +165,15 @@ export const AppRouter = () => {
                                 }
                             />
 
-                            {/* ===== 404 ===== */}
-                            <Route path='*' element={<NotFoundPage />} />
+                            {/* 404 */}
+                            <Route path="*" element={<NotFoundPage />} />
                         </Routes>
                     </main>
-
                     <Footer />
                 </div>
             </AuthProvider>
         </BrowserRouter>
     );
 };
+
+export default AppRouter;

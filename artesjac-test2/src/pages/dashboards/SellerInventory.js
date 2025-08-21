@@ -1,14 +1,14 @@
 // src/pages/seller/SellerInventory.jsx
 import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "../../modules/auth/AuthContext";
+
 import "../../styles/dashboard.css";
 import "../../styles/inventory.css";
 import { ProductsAPI } from "../../api/products.service";
 import { resolveImgUrl } from "../../utils/resolveImgUrl";
 import noImage from "../../assets/images/noimage.png"; // ⬅️ Fallback local
 
-// ---- Helpers para URLs/valores vacíos ----
+// ---- Helpers ----
 const isEmptyLike = (v) => {
     if (v == null) return true;
     const s = String(v).trim().toLowerCase();
@@ -49,7 +49,7 @@ const ImageWithFallback = ({ src, alt, className }) => {
 };
 
 export const SellerInventory = () => {
-    const { user } = useAuth();
+    
 
     const [products, setProducts] = useState([]);
     const [filteredProducts, setFilteredProducts] = useState([]);
@@ -81,13 +81,15 @@ export const SellerInventory = () => {
         { value: "textiles", label: "Textiles" },
     ];
 
+    // 🔧 Cargar MIS productos (endpoint correcto)
     const loadProducts = useCallback(async () => {
         setIsLoading(true);
         try {
-            const { data } = await ProductsAPI.list({ page: 1, limit: 100, sort: "new" });
+            const res = await ProductsAPI.mine({ page: 1, limit: 100 });
+            const list = res?.data?.data || [];
 
             // Mapear del backend al estado de la UI
-            const mapped = (Array.isArray(data) ? data : data?.data || []).map((p) => {
+            const mapped = list.map((p) => {
                 const uiStatus =
                     (Number(p.stock) || 0) === 0
                         ? "out_of_stock"
@@ -95,21 +97,21 @@ export const SellerInventory = () => {
                             ? "inactive"
                             : "active";
 
-                // Toma primera imagen válida del array o del campo simple
+                // primera imagen válida (array o string)
                 const rawFirst = Array.isArray(p.images)
                     ? p.images.find((x) => !isEmptyLike(x))
                     : p.images;
                 const img = isEmptyLike(rawFirst) ? "" : normalizePath(rawFirst);
 
                 return {
-                    id: p._id,
+                    id: p._id || p.id,
                     name: p.title,
                     description: p.description || "",
                     price: Number(p.price) || 0,
                     stock: Number(p.stock) || 0,
                     category: p.category || "",
                     status: uiStatus,
-                    imageUrl: img, // ⬅️ guardamos "crudo", lo resolvemos en el <img>
+                    imageUrl: img, // se resuelve en el <img/>
                     createdAt: p.createdAt,
                     lastUpdated: p.updatedAt || p.createdAt,
                 };
@@ -170,6 +172,7 @@ export const SellerInventory = () => {
         }));
     };
 
+    // Guardar (crear/actualizar)
     const handleSaveProduct = async () => {
         // Normalizar estado UI -> schema
         let status = formData.status || "active";
@@ -422,7 +425,6 @@ export const SellerInventory = () => {
                             <div key={product.id} className="table-row product-row">
                                 <div className="table-cell product-info">
                                     <div className="product-image">
-                                        {/* ⬇️ Imagen SIEMPRE con fallback */}
                                         <ImageWithFallback
                                             src={product.imageUrl}
                                             alt={product.name}
@@ -619,3 +621,5 @@ export const SellerInventory = () => {
         </div>
     );
 };
+
+export default SellerInventory;

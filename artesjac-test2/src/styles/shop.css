@@ -340,14 +340,14 @@
 
 .product-category {
     display: inline-block;
-    color: #fff;
+    color: #ffffff;
     font-size: .78rem;
     font-weight: 800;
     text-transform: uppercase;
     padding: .28rem .7rem;
     border-radius: 20px;
     border: 2px solid var(--primary);
-    background: linear-gradient(135deg, #ffffff 0%, #bf6a50 100%);
+    background: linear-gradient(135deg, #b65801 0%, #831f00 100%);
     min-width: 74px;
     text-align: center
 }
