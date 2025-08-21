@@ -1,250 +1,218 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../modules/auth/AuthContext';
-import '../styles/product.css';
+// src/pages/ProductPage.js
+import React, { useState, useEffect } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../modules/auth/AuthContext";
+import { ShopAPI } from "../api/shop.service";
+import { resolveImgUrl } from "../utils/resolveImgUrl";
+import noImage from "../assets/images/noimage.png";
+import "../styles/product.css";
+
+// Formateo de colones CR
+const fmtCRC = (n) =>
+    typeof n === "number" ? `₡${n.toLocaleString("es-CR")}` : n;
+
+// Traducción simple de categorías (si en DB están en inglés)
+const catLabel = (c) => {
+    const map = {
+        jewelery: "Joyería",
+        art: "Pintura",
+        ceramics: "Cerámica",
+        textiles: "Textil",
+        decoration: "Decoración",
+        bags: "Bolsos",
+        wood: "Madera",
+    };
+    return map[c] || (c ? c[0].toUpperCase() + c.slice(1) : "General");
+};
+
+// Saca la primera imagen válida del arreglo
+const firstImg = (p) => {
+    const arr = Array.isArray(p?.images) ? p.images : [];
+    const candidate = arr.find(Boolean);
+    return candidate ? String(candidate).replace(/\\/g, "/") : null;
+};
 
 export const ProductPage = () => {
-    const { id } = useParams();
+    // Soporta ruta /p/:slug o /product/:id (cualquiera de los dos)
+    const params = useParams();
+    const slugOrId = params.slug || params.id;
+
     const navigate = useNavigate();
     const { user } = useAuth();
+
     const [product, setProduct] = useState(null);
     const [sellerInfo, setSellerInfo] = useState(null);
+
     const [quantity, setQuantity] = useState(1);
     const [addedToCart, setAddedToCart] = useState(false);
+
     const [productReviews, setProductReviews] = useState([]);
     const [averageRating, setAverageRating] = useState(0);
+
     const [userRating, setUserRating] = useState(0);
-    const [reviewComment, setReviewComment] = useState('');
+    const [reviewComment, setReviewComment] = useState("");
     const [showReviewForm, setShowReviewForm] = useState(false);
 
-    // Mock data de productos actualizado con información del vendedor
-    const products = [
-        {
-            id: 1,
-            name: 'Collar artesanal de semillas',
-            price: '₡12.000',
-            numericPrice: 12000,
-            category: 'joyeria',
-            description: 'Hermoso collar hecho a mano con semillas naturales de Costa Rica. Una pieza única que refleja la tradición artesanal costarricense.',
-            sellerId: 'seller_001',
-            sellerName: 'Artesanías María José',
-            sellerRating: 4.8,
-            sellerReviews: 45
-        },
-        {
-            id: 2,
-            name: 'Bolso tejido a mano',
-            price: '₡18.500',
-            numericPrice: 18500,
-            category: 'textil',
-            description: 'Bolso artesanal tejido con técnicas tradicionales, perfecto para el uso diario y con un toque de elegancia costarricense.',
-            sellerId: 'seller_002',
-            sellerName: 'Tejidos Doña Carmen',
-            sellerRating: 4.6,
-            sellerReviews: 32
-        },
-        {
-            id: 3,
-            name: 'Cuadro colorido abstracto',
-            price: '₡22.000',
-            numericPrice: 22000,
-            category: 'pintura',
-            description: 'Obra de arte original que captura los colores vibrantes de Costa Rica en un estilo abstracto contemporáneo.',
-            sellerId: 'seller_003',
-            sellerName: 'Arte y Color CR',
-            sellerRating: 4.9,
-            sellerReviews: 67
-        },
-        {
-            id: 4,
-            name: 'Vasija de cerámica tradicional',
-            price: '₡15.800',
-            numericPrice: 15800,
-            category: 'ceramica',
-            description: 'Vasija decorativa elaborada con técnicas de cerámica tradicional, ideal para decorar cualquier espacio del hogar.',
-            sellerId: 'seller_004',
-            sellerName: 'Cerámica Los Abuelos',
-            sellerRating: 4.7,
-            sellerReviews: 28
-        },
-        {
-            id: 5,
-            name: 'Aretes de madera tallada',
-            price: '₡8.500',
-            numericPrice: 8500,
-            category: 'joyeria',
-            description: 'Elegantes aretes tallados en madera nacional, ligeros y cómodos para uso diario.',
-            sellerId: 'seller_001',
-            sellerName: 'Artesanías María José',
-            sellerRating: 4.8,
-            sellerReviews: 45
-        },
-        // ... resto de productos con información del vendedor
-    ];
-
-    useEffect(() => {
-        const foundProduct = products.find(p => p.id === parseInt(id));
-        setProduct(foundProduct);
-
-        if (foundProduct) {
-            loadSellerInfo(foundProduct.sellerId);
-            loadProductReviews(foundProduct.id);
-        }
-    }, [id]);
-
-    const loadSellerInfo = (sellerId) => {
+    // Cargar detalle + reseñas reales (públicas)
+    const load = async () => {
         try {
-            // Intentar cargar información completa del vendedor
-            const storeData = localStorage.getItem(`store_profile_${sellerId}`);
-            if (storeData) {
-                const parsed = JSON.parse(storeData);
+            // Detalle por slugOrId (axios-like: res.data => { ok, data })
+            const resDetail = await ShopAPI.get(slugOrId);
+            const detail = resDetail?.data?.data;
+            if (!detail) {
+                setProduct(null);
+                return;
+            }
+            setProduct(detail);
+
+            // Vendedor público embebido
+            if (detail.vendorId) {
                 setSellerInfo({
-                    id: sellerId,
-                    businessName: parsed.businessName,
-                    description: parsed.description,
-                    contact: parsed.contact,
-                    location: parsed.location,
-                    category: parsed.businessInfo?.category,
-                    foundedYear: parsed.businessInfo?.foundedYear
+                    id: detail.vendorId._id || detail.vendorId.id,
+                    businessName: detail.vendorId.companyName || detail.vendorId.name,
+                    name: detail.vendorId.name,
+                    role: detail.vendorId.role,
+                    avatar: detail.vendorId.avatar,
                 });
             } else {
-                // Información básica del mock
-                const mockProduct = products.find(p => p.id === parseInt(id));
-                if (mockProduct) {
-                    setSellerInfo({
-                        id: sellerId,
-                        businessName: mockProduct.sellerName,
-                        rating: mockProduct.sellerRating,
-                        totalReviews: mockProduct.sellerReviews,
-                        description: 'Tienda especializada en productos artesanales de alta calidad.',
-                        contact: { email: 'contacto@tienda.com' },
-                        location: { city: 'San José', province: 'San José' }
-                    });
-                }
+                setSellerInfo(null);
             }
-        } catch (error) {
-            console.error('Error al cargar información del vendedor:', error);
-        }
-    };
 
-    const loadProductReviews = (productId) => {
-        try {
-            const savedReviews = localStorage.getItem(`product_reviews_${productId}`);
-            if (savedReviews) {
-                const parsed = JSON.parse(savedReviews);
-                setProductReviews(parsed);
-                calculateAverageRating(parsed);
+            // Rating agregado desde el mismo detalle (si backend lo manda)
+            if (typeof detail.averageRating === "number") {
+                setAverageRating(detail.averageRating);
             } else {
-                // Generar algunas reseñas de ejemplo
-                const mockReviews = [
-                    {
-                        id: 1,
-                        userId: 'user_001',
-                        userName: 'Ana González',
-                        rating: 5,
-                        comment: 'Excelente calidad, muy bien hecho. Recomendado 100%',
-                        date: '2024-01-10T10:00:00Z'
-                    },
-                    {
-                        id: 2,
-                        userId: 'user_002',
-                        userName: 'Carlos Ruiz',
-                        rating: 4,
-                        comment: 'Muy bonito producto, llegó en perfecto estado.',
-                        date: '2024-01-08T15:30:00Z'
-                    }
-                ];
-                setProductReviews(mockReviews);
-                calculateAverageRating(mockReviews);
+                setAverageRating(0);
             }
-        } catch (error) {
-            console.error('Error al cargar reseñas del producto:', error);
+
+            // Reseñas aprobadas públicas
+            const pid = detail._id || detail.id;
+            if (pid) {
+                const resReviews = await ShopAPI.reviews(pid, { page: 1, limit: 10 });
+                const list = resReviews?.data?.data || [];
+                setProductReviews(list);
+
+                // Si el detalle no trae average, calcularlo localmente
+                if (typeof detail.averageRating !== "number") {
+                    const sum = list.reduce((acc, rv) => acc + (rv.rating || 0), 0);
+                    setAverageRating(list.length ? sum / list.length : 0);
+                }
+            } else {
+                setProductReviews([]);
+            }
+        } catch (err) {
+            console.error("Product detail error:", err?.response?.data || err.message);
+            setProduct(null);
         }
     };
 
-    const calculateAverageRating = (reviewsList) => {
-        if (reviewsList.length === 0) {
-            setAverageRating(0);
-            return;
-        }
+    useEffect(() => {
+        load();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [slugOrId]);
 
-        const sum = reviewsList.reduce((acc, review) => acc + review.rating, 0);
-        const average = sum / reviewsList.length;
-        setAverageRating(average);
-    };
-
+    // Agregar al carrito (compatibilidad: guarda id, name, etc.)
     const handleAddToCart = () => {
         if (!product) return;
 
         try {
-            const savedCart = localStorage.getItem('artesjac-cart');
+            const savedCart = localStorage.getItem("artesjac-cart");
             let cart = savedCart ? JSON.parse(savedCart) : [];
 
-            const existingItem = cart.find(item => item.id === product.id);
+            const cartId = product._id || product.id;
+            const existing = cart.find((it) => it.id === cartId);
 
-            if (existingItem) {
-                cart = cart.map(item =>
-                    item.id === product.id
-                        ? { ...item, quantity: item.quantity + quantity }
-                        : item
+            const img = firstImg(product);
+
+            if (existing) {
+                cart = cart.map((it) =>
+                    it.id === cartId ? { ...it, quantity: (it.quantity || 1) + quantity } : it
                 );
             } else {
-                cart.push({ ...product, quantity });
+                cart.push({
+                    id: cartId, // compatibilidad con lógicas previas
+                    productId: cartId,
+                    slug: product.slug,
+                    name: product.title, // compatibilidad con UIs que esperan "name"
+                    title: product.title,
+                    price: product.price,
+                    quantity,
+                    image: img,
+                    category: product.category,
+                    stock: product.stock,
+                });
             }
 
-            localStorage.setItem('artesjac-cart', JSON.stringify(cart));
+            localStorage.setItem("artesjac-cart", JSON.stringify(cart));
             setAddedToCart(true);
-            setTimeout(() => setAddedToCart(false), 3000);
-
+            setTimeout(() => setAddedToCart(false), 2500);
         } catch (error) {
-            console.error('Error al agregar al carrito:', error);
+            console.error("Error al agregar al carrito:", error);
         }
     };
 
+    // En esta versión seguimos usando localStorage para enviar reseñas (no hay POST público aún)
     const handleSubmitReview = () => {
-        if (!user || userRating === 0) return;
+        if (!user || userRating === 0 || !product) return;
 
         const newReview = {
-            id: Date.now(),
-            userId: user.id,
-            userName: user.name,
+            _id: `local_${Date.now()}`,
+            userId: { name: user.name || "Usuario" }, // para calzar con el shape público
             rating: userRating,
             comment: reviewComment,
-            date: new Date().toISOString()
+            createdAt: new Date().toISOString(),
+            _local: true, // flag local
         };
 
         try {
-            const existingReviews = productReviews.filter(r => r.userId !== user.id);
-            const updatedReviews = [...existingReviews, newReview];
+            const pid = product._id || product.id || product.slug;
+            const key = `product_reviews_${pid}`;
+            const existingLocal = localStorage.getItem(key);
+            const localArr = existingLocal ? JSON.parse(existingLocal) : [];
 
-            localStorage.setItem(`product_reviews_${product.id}`, JSON.stringify(updatedReviews));
-            setProductReviews(updatedReviews);
-            calculateAverageRating(updatedReviews);
+            const updated = [newReview, ...productReviews, ...localArr];
+            localStorage.setItem(key, JSON.stringify(updated));
+            setProductReviews(updated);
+
+            // Recalcular promedio (local)
+            const sum = updated.reduce((acc, rv) => acc + (rv.rating || 0), 0);
+            setAverageRating(updated.length ? sum / updated.length : 0);
 
             setUserRating(0);
-            setReviewComment('');
+            setReviewComment("");
             setShowReviewForm(false);
-
-            alert('¡Reseña del producto enviada exitosamente!');
+            alert("¡Reseña enviada! (local)");
         } catch (error) {
-            console.error('Error al guardar reseña:', error);
-            alert('Error al enviar la reseña');
+            console.error("Error al guardar reseña:", error);
+            alert("Error al enviar la reseña");
         }
     };
 
-    const renderStars = (rating, interactive = false, onStarClick = null) => {
-        return (
-            <div className={`stars ${interactive ? 'interactive' : ''}`}>
-                {[1, 2, 3, 4, 5].map(star => (
-                    <i
-                        key={star}
-                        className={`fa fa-star ${star <= rating ? 'active' : ''}`}
-                        onClick={interactive ? () => onStarClick(star) : undefined}
-                    ></i>
-                ))}
-            </div>
-        );
-    };
+    const renderStars = (rating, interactive = false, onStarClick = null) => (
+        <div className={`stars ${interactive ? "interactive" : ""}`}>
+            {[1, 2, 3, 4, 5].map((star) => (
+                <i
+                    key={star}
+                    className={`fa fa-star ${star <= Math.round(rating) ? "active" : ""}`}
+                    onClick={interactive ? () => onStarClick(star) : undefined}
+                />
+            ))}
+        </div>
+    );
+
+    // Fusión reseñas de API + locales (si las hay)
+    const mergedReviews = (() => {
+        if (!product) return [];
+        const pid = product._id || product.id || product.slug;
+        const key = `product_reviews_${pid}`;
+        let locals = [];
+        try {
+            const saved = localStorage.getItem(key);
+            locals = saved ? JSON.parse(saved) : [];
+        } catch { }
+        // Las del backend vienen con shape { userId: { name, avatar }, rating, comment, createdAt }
+        return [...locals, ...productReviews];
+    })();
 
     if (!product) {
         return (
@@ -260,6 +228,8 @@ export const ProductPage = () => {
         );
     }
 
+    const img = firstImg(product);
+
     return (
         <main className="product-container">
             {/* Breadcrumb */}
@@ -268,39 +238,44 @@ export const ProductPage = () => {
                 <span>/</span>
                 <Link to="/shop">Tienda</Link>
                 <span>/</span>
-                <span className="current">{product.name}</span>
+                <span className="current">{product.title}</span>
             </nav>
 
             <div className="product-detail">
                 {/* Imagen del producto */}
                 <div className="product-image-section">
                     <div className="product-image-main">
-                        <div className="product-image-sim large"></div>
+                        <img
+                            className="product-image-sim large"
+                            src={img ? resolveImgUrl(img) : noImage}
+                            alt={product.title}
+                            onError={(e) => {
+                                e.currentTarget.src = noImage;
+                            }}
+                        />
                     </div>
                 </div>
 
                 {/* Información del producto */}
                 <div className="product-info-section">
-                    <div className="product-category">
-                        {product.category.charAt(0).toUpperCase() + product.category.slice(1)}
-                    </div>
+                    <div className="product-category">{catLabel(product.category)}</div>
 
-                    <h1 className="product-title">{product.name}</h1>
+                    <h1 className="product-title">{product.title}</h1>
 
                     {/* Rating del producto */}
                     <div className="product-rating">
                         {renderStars(averageRating)}
                         <span className="rating-text">
-                            {averageRating > 0 ? averageRating.toFixed(1) : 'Sin calificar'}
-                            ({productReviews.length} reseñas)
+                            {averageRating > 0 ? averageRating.toFixed(1) : "Sin calificar"}
+                            {product.reviewsCount ? ` (${product.reviewsCount} reseñas)` : ""}
                         </span>
                     </div>
 
-                    <div className="product-price-main">{product.price}</div>
+                    <div className="product-price-main">{fmtCRC(product.price)}</div>
 
                     <div className="product-description">
                         <h3>Descripción</h3>
-                        <p>{product.description}</p>
+                        <p>{product.description || "Sin descripción"}</p>
                     </div>
 
                     <div className="product-purchase">
@@ -311,67 +286,69 @@ export const ProductPage = () => {
                                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
                                     className="quantity-btn"
                                 >
-                                    <i className="fa fa-minus"></i>
+                                    <i className="fa fa-minus" />
                                 </button>
                                 <span className="quantity-display">{quantity}</span>
                                 <button
                                     onClick={() => setQuantity(quantity + 1)}
                                     className="quantity-btn"
                                 >
-                                    <i className="fa fa-plus"></i>
+                                    <i className="fa fa-plus" />
                                 </button>
                             </div>
                         </div>
 
                         <div className="purchase-actions">
                             <button
-                                className={`btn-add-to-cart ${addedToCart ? 'added' : ''}`}
+                                className={`btn-add-to-cart ${addedToCart ? "added" : ""}`}
                                 onClick={handleAddToCart}
+                                disabled={product.stock <= 0}
                             >
                                 {addedToCart ? (
                                     <>
-                                        <i className="fa fa-check"></i> ¡Agregado al carrito!
+                                        <i className="fa fa-check" /> ¡Agregado!
                                     </>
                                 ) : (
                                     <>
-                                        <i className="fa fa-shopping-cart"></i> Agregar al carrito
+                                        <i className="fa fa-shopping-cart" /> Agregar al carrito
                                     </>
                                 )}
                             </button>
 
                             <button
                                 className="btn-buy-now"
+                                disabled={product.stock <= 0}
                                 onClick={() => {
                                     handleAddToCart();
-                                    setTimeout(() => navigate('/cart'), 500);
+                                    setTimeout(() => navigate("/cart"), 400);
                                 }}
                             >
-                                <i className="fa fa-bolt"></i> Comprar ahora
+                                <i className="fa fa-bolt" /> Comprar ahora
                             </button>
                         </div>
 
                         {/* Botón para evaluar producto */}
-                        {user && user.userType === 'buyer' && (
+                        {user && user.userType === "buyer" && (
                             <button
                                 className="btn-review-product"
                                 onClick={() => setShowReviewForm(true)}
                             >
-                                <i className="fa fa-star"></i> Evaluar Producto
+                                <i className="fa fa-star" /> Evaluar Producto
                             </button>
                         )}
                     </div>
 
                     <div className="product-features">
                         <div className="feature">
-                            <i className="fa fa-truck"></i>
-                            <span>Envío gratis a todo Costa Rica</span>
+                            <i className="fa fa-truck" />
+                            <span>Envío a todo Costa Rica</span>
                         </div>
                         <div className="feature">
-                            <i className="fa fa-shield-alt"></i>
+                            <i className="fa fa-shield-alt" />
                             <span>Garantía de calidad artesanal</span>
                         </div>
                         <div className="feature">
-                            <i className="fa fa-heart"></i>
+                            <i className="fa fa-heart" />
                             <span>Hecho con amor por artesanos locales</span>
                         </div>
                     </div>
@@ -385,51 +362,25 @@ export const ProductPage = () => {
                     <div className="seller-card">
                         <div className="seller-header">
                             <div className="seller-avatar">
-                                <i className="fa fa-store"></i>
+                                {sellerInfo.avatar ? (
+                                    <img src={sellerInfo.avatar} alt={sellerInfo.businessName || sellerInfo.name} />
+                                ) : (
+                                    <i className="fa fa-store" />
+                                )}
                             </div>
                             <div className="seller-details">
-                                <h3>{sellerInfo.businessName}</h3>
-                                {sellerInfo.category && (
-                                    <p className="seller-category">{sellerInfo.category}</p>
-                                )}
-                                {sellerInfo.rating && (
-                                    <div className="seller-rating">
-                                        {renderStars(sellerInfo.rating)}
-                                        <span>({sellerInfo.totalReviews} reseñas)</span>
-                                    </div>
-                                )}
-                                {sellerInfo.location && (
-                                    <p className="seller-location">
-                                        <i className="fa fa-map-marker-alt"></i>
-                                        {sellerInfo.location.city}, {sellerInfo.location.province}
-                                    </p>
+                                <h3>{sellerInfo.businessName || sellerInfo.name}</h3>
+                                {sellerInfo.role && (
+                                    <p className="seller-category">{String(sellerInfo.role).toUpperCase()}</p>
                                 )}
                             </div>
                         </div>
 
-                        {sellerInfo.description && (
-                            <div className="seller-description">
-                                <p>{sellerInfo.description}</p>
-                            </div>
-                        )}
-
                         <div className="seller-actions">
-                            <Link
-                                to={`/seller-profile/${sellerInfo.id}`}
-                                className="btn-view-store"
-                            >
-                                <i className="fa fa-eye"></i>
-                                Ver Tienda Completa
+                            {/* Ajustá esta ruta si tenés perfil público del vendedor */}
+                            <Link to={`/seller-profile/${sellerInfo.id || product.vendorId}`} className="btn-view-store">
+                                <i className="fa fa-eye" /> Ver Tienda Completa
                             </Link>
-                            {sellerInfo.contact?.email && (
-                                <a
-                                    href={`mailto:${sellerInfo.contact.email}`}
-                                    className="btn-contact-seller"
-                                >
-                                    <i className="fa fa-envelope"></i>
-                                    Contactar
-                                </a>
-                            )}
                         </div>
                     </div>
                 </div>
@@ -438,50 +389,48 @@ export const ProductPage = () => {
             {/* Reseñas del Producto */}
             <div className="product-reviews-section">
                 <h2>⭐ Reseñas del Producto</h2>
-                {productReviews.length > 0 ? (
+                {mergedReviews.length > 0 ? (
                     <div className="reviews-list">
-                        {productReviews.slice(0, 5).map(review => (
-                            <div key={review.id} className="review-item">
+                        {mergedReviews.slice(0, 10).map((review) => (
+                            <div key={review._id || review.id} className="review-item">
                                 <div className="review-header">
                                     <div className="reviewer-info">
-                                        <i className="fa fa-user-circle"></i>
-                                        <span>{review.userName}</span>
+                                        {review.userId?.avatar ? (
+                                            <img src={review.userId.avatar} alt={review.userId?.name} className="review-avatar" />
+                                        ) : (
+                                            <i className="fa fa-user-circle" />
+                                        )}
+                                        <span>{review.userId?.name || review.userName || "Usuario"}</span>
                                     </div>
-                                    <div className="review-rating">
-                                        {renderStars(review.rating)}
-                                    </div>
+                                    <div className="review-rating">{renderStars(review.rating || 0)}</div>
                                 </div>
                                 <div className="review-date">
-                                    {new Date(review.date).toLocaleDateString('es-CR')}
+                                    {new Date(review.createdAt || review.date).toLocaleDateString("es-CR")}
                                 </div>
-                                {review.comment && (
-                                    <div className="review-comment">
-                                        {review.comment}
-                                    </div>
-                                )}
+                                {review.comment && <div className="review-comment">{review.comment}</div>}
                             </div>
                         ))}
                     </div>
                 ) : (
-                    <p className="no-reviews">Aún no hay reseñas para este producto. ¡Sé el primero en evaluar!</p>
+                    <p className="no-reviews">Aún no hay reseñas para este producto.</p>
                 )}
             </div>
 
             {/* Botón de regreso */}
             <div className="navigation-actions">
                 <Link to="/shop" className="btn-back">
-                    <i className="fa fa-arrow-left"></i> Volver a la tienda
+                    <i className="fa fa-arrow-left" /> Volver a la tienda
                 </Link>
             </div>
 
-            {/* Modal para evaluar producto */}
+            {/* Modal para evaluar producto (local, sin POST aún) */}
             {showReviewForm && (
                 <div className="modal-overlay" onClick={() => setShowReviewForm(false)}>
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
                             <h2>Evaluar Producto</h2>
                             <button onClick={() => setShowReviewForm(false)} className="modal-close">
-                                <i className="fa fa-times"></i>
+                                <i className="fa fa-times" />
                             </button>
                         </div>
                         <div className="modal-body">
@@ -490,12 +439,12 @@ export const ProductPage = () => {
                                 {renderStars(userRating, true, setUserRating)}
                             </div>
                             <div className="comment-section">
-                                <label>Comentario sobre el producto (opcional):</label>
+                                <label>Comentario (opcional):</label>
                                 <textarea
                                     value={reviewComment}
                                     onChange={(e) => setReviewComment(e.target.value)}
-                                    placeholder="Cuéntanos sobre tu experiencia con este producto..."
-                                    rows="4"
+                                    placeholder="Contanos tu experiencia…"
+                                    rows={4}
                                 />
                             </div>
                         </div>
@@ -503,11 +452,7 @@ export const ProductPage = () => {
                             <button onClick={() => setShowReviewForm(false)} className="btn-cancel">
                                 Cancelar
                             </button>
-                            <button
-                                onClick={handleSubmitReview}
-                                className="btn-submit"
-                                disabled={userRating === 0}
-                            >
+                            <button onClick={handleSubmitReview} className="btn-submit" disabled={userRating === 0}>
                                 Enviar Reseña
                             </button>
                         </div>
@@ -517,3 +462,5 @@ export const ProductPage = () => {
         </main>
     );
 };
+
+export default ProductPage;

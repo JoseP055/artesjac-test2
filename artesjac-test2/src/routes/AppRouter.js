@@ -1,4 +1,5 @@
-import React from 'react'
+// src/router/AppRouter.jsx (o donde tengas este archivo)
+import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from '../modules/auth/AuthContext';
 import { BuyerRoute, SellerRoute, AuthenticatedRoute } from '../components/ProtectedRoute';
@@ -48,89 +49,129 @@ export const AppRouter = () => {
 
                             {/* ===== TIENDA Y PRODUCTOS (PÚBLICO/COMPRADOR) ===== */}
                             <Route path='/shop' element={<ShopPage />} />
+                            {/* Slug público para detalle de producto */}
+                            <Route path='/p/:slug' element={<ProductPage />} />
+                            {/* Compatibilidad con vistas antiguas por id */}
+                            <Route path='/product/:id' element={<ProductPage />} />
+                            {/* Si usás estas rutas como categorías estáticas, las dejamos apuntando a ShopPage */}
                             <Route path='/fashion' element={<ShopPage />} />
                             <Route path='/electronic' element={<ShopPage />} />
                             <Route path='/jewellery' element={<ShopPage />} />
-                            <Route path='/product/:id' element={<ProductPage />} />
 
                             {/* ===== PERFIL DE VENDEDOR (PÚBLICO) ===== */}
                             <Route path='/seller-profile/:sellerId' element={<SellerProfile />} />
 
                             {/* ===== DASHBOARDS PROTEGIDOS ===== */}
-                            <Route path='/buyer/dashboard' element={
-                                <BuyerRoute>
-                                    <BuyerDashboard />
-                                </BuyerRoute>
-                            } />
+                            <Route
+                                path='/buyer/dashboard'
+                                element={
+                                    <BuyerRoute>
+                                        <BuyerDashboard />
+                                    </BuyerRoute>
+                                }
+                            />
 
-                            <Route path='/seller/dashboard' element={
-                                <SellerRoute>
-                                    <SellerDashboard />
-                                </SellerRoute>
-                            } />
+                            <Route
+                                path='/seller/dashboard'
+                                element={
+                                    <SellerRoute>
+                                        <SellerDashboard />
+                                    </SellerRoute>
+                                }
+                            />
 
                             {/* ===== RUTAS DE COMPRADOR ===== */}
-                            <Route path='/cart' element={
-                                <BuyerRoute>
-                                    <CartPage />
-                                </BuyerRoute>
-                            } />
+                            <Route
+                                path='/cart'
+                                element={
+                                    <BuyerRoute>
+                                        <CartPage />
+                                    </BuyerRoute>
+                                }
+                            />
 
-                            <Route path='/checkout' element={
-                                <BuyerRoute>
-                                    <CheckoutPage />
-                                </BuyerRoute>
-                            } />
+                            <Route
+                                path='/checkout'
+                                element={
+                                    <BuyerRoute>
+                                        <CheckoutPage />
+                                    </BuyerRoute>
+                                }
+                            />
 
-                            <Route path='/order-confirmation/:id?' element={
-                                <BuyerRoute>
-                                    <OrderConfirmation />
-                                </BuyerRoute>
-                            } />
+                            <Route
+                                path='/order-confirmation/:id?'
+                                element={
+                                    <BuyerRoute>
+                                        <OrderConfirmation />
+                                    </BuyerRoute>
+                                }
+                            />
 
-                            <Route path='/orders' element={
-                                <BuyerRoute>
-                                    <OrdersPage />
-                                </BuyerRoute>
-                            } />
+                            <Route
+                                path='/orders'
+                                element={
+                                    <BuyerRoute>
+                                        <OrdersPage />
+                                    </BuyerRoute>
+                                }
+                            />
 
-                            <Route path='/orders/:id' element={
-                                <BuyerRoute>
-                                    <OrdersPage />
-                                </BuyerRoute>
-                            } />
+                            <Route
+                                path='/orders/:id'
+                                element={
+                                    <BuyerRoute>
+                                        <OrdersPage />
+                                    </BuyerRoute>
+                                }
+                            />
 
                             {/* ===== NUEVAS RUTAS DEL VENDEDOR ===== */}
-                            <Route path='/seller/inventory' element={
-                                <SellerRoute>
-                                    <SellerInventory />
-                                </SellerRoute>
-                            } />
+                            <Route
+                                path='/seller/inventory'
+                                element={
+                                    <SellerRoute>
+                                        <SellerInventory />
+                                    </SellerRoute>
+                                }
+                            />
 
-                            <Route path='/seller/orders' element={
-                                <SellerRoute>
-                                    <SellerOrders />
-                                </SellerRoute>
-                            } />
+                            <Route
+                                path='/seller/orders'
+                                element={
+                                    <SellerRoute>
+                                        <SellerOrders />
+                                    </SellerRoute>
+                                }
+                            />
 
-                            <Route path='/seller/store-profile' element={
-                                <SellerRoute>
-                                    <SellerStoreProfile />
-                                </SellerRoute>
-                            } />
+                            <Route
+                                path='/seller/store-profile'
+                                element={
+                                    <SellerRoute>
+                                        <SellerStoreProfile />
+                                    </SellerRoute>
+                                }
+                            />
 
-                            <Route path='/seller/analytics' element={
-                                <SellerRoute>
-                                    <SellerAnalytics />
-                                </SellerRoute>
-                            } />
+                            <Route
+                                path='/seller/analytics'
+                                element={
+                                    <SellerRoute>
+                                        <SellerAnalytics />
+                                    </SellerRoute>
+                                }
+                            />
 
                             {/* ===== ÁREA DE USUARIO (AMBOS TIPOS) ===== */}
-                            <Route path='/profile' element={
-                                <AuthenticatedRoute>
-                                    <ProfilePage />
-                                </AuthenticatedRoute>
-                            } />
+                            <Route
+                                path='/profile'
+                                element={
+                                    <AuthenticatedRoute>
+                                        <ProfilePage />
+                                    </AuthenticatedRoute>
+                                }
+                            />
 
                             {/* ===== 404 ===== */}
                             <Route path='*' element={<NotFoundPage />} />
@@ -142,4 +183,4 @@ export const AppRouter = () => {
             </AuthProvider>
         </BrowserRouter>
     );
-}
+};
