@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../../modules/auth/AuthContext';
-import '../../styles/dashboard.css';
-import '../../styles/analytics.css';
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { useAuth } from "../../modules/auth/AuthContext";
+import "../../styles/dashboard.css";
+import "../../styles/analytics.css";
+import { AnalyticsAPI } from "../../api/analytics.service";
 
 export const SellerAnalytics = () => {
     const { user } = useAuth();
@@ -12,61 +13,51 @@ export const SellerAnalytics = () => {
         salesTrends: [],
         customerMetrics: {},
         revenueBreakdown: {},
-        productCategories: []
+        productCategories: [],
     });
-    const [selectedPeriod, setSelectedPeriod] = useState('6months');
+    const [selectedPeriod, setSelectedPeriod] = useState("6months");
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        loadAnalyticsData();
+        const load = async () => {
+            setIsLoading(true);
+            try {
+                const res = await AnalyticsAPI.getSeller(selectedPeriod);
+                const data = res?.data || {};
+                setAnalyticsData({
+                    monthlyData: Array.isArray(data.monthlyData) ? data.monthlyData : [],
+                    topProducts: Array.isArray(data.topProducts) ? data.topProducts : [],
+                    salesTrends: Array.isArray(data.salesTrends) ? data.salesTrends : [],
+                    customerMetrics: data.customerMetrics || {},
+                    revenueBreakdown: data.revenueBreakdown || {},
+                    productCategories: Array.isArray(data.productCategories) ? data.productCategories : [],
+                });
+            } catch (e) {
+                console.error("Error cargando analytics:", e);
+                alert(e?.response?.data?.error || "No se pudieron cargar las estadísticas.");
+                setAnalyticsData({
+                    monthlyData: [],
+                    topProducts: [],
+                    salesTrends: [],
+                    customerMetrics: {},
+                    revenueBreakdown: {},
+                    productCategories: [],
+                });
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        load();
     }, [selectedPeriod]);
 
-    const loadAnalyticsData = () => {
-        setIsLoading(true);
-        // Simular carga de datos analíticos
-        setTimeout(() => {
-            setAnalyticsData({
-                monthlyData: [
-                    { month: 'Ago', sales: 8, revenue: 95000, orders: 12 },
-                    { month: 'Sep', sales: 12, revenue: 140000, orders: 18 },
-                    { month: 'Oct', sales: 15, revenue: 180000, orders: 22 },
-                    { month: 'Nov', sales: 18, revenue: 220000, orders: 25 },
-                    { month: 'Dic', sales: 22, revenue: 280000, orders: 30 },
-                    { month: 'Ene', sales: 25, revenue: 320000, orders: 35 }
-                ],
-                topProducts: [
-                    { id: 1, name: 'Collar artesanal de semillas', sales: 45, revenue: 540000, percentage: 35 },
-                    { id: 2, name: 'Bolso tejido a mano', sales: 32, revenue: 384000, percentage: 25 },
-                    { id: 3, name: 'Aretes de madera tallada', sales: 28, revenue: 238000, percentage: 20 },
-                    { id: 4, name: 'Vasija cerámica decorativa', sales: 15, revenue: 180000, percentage: 12 },
-                    { id: 5, name: 'Cuadro paisaje artesanal', sales: 10, revenue: 150000, percentage: 8 }
-                ],
-                customerMetrics: {
-                    totalCustomers: 87,
-                    newCustomers: 23,
-                    returningCustomers: 64,
-                    avgOrderValue: 28500,
-                    customerSatisfaction: 4.8
-                },
-                revenueBreakdown: {
-                    productSales: 85,
-                    shipping: 10,
-                    taxes: 5
-                },
-                productCategories: [
-                    { category: 'Joyería', count: 8, sales: 45, revenue: 540000 },
-                    { category: 'Bolsos y Accesorios', count: 5, sales: 32, revenue: 384000 },
-                    { category: 'Decoración', count: 4, sales: 28, revenue: 268000 },
-                    { category: 'Arte', count: 3, sales: 15, revenue: 180000 }
-                ]
-            });
-            setIsLoading(false);
-        }, 1000);
+    const formatCurrency = (amount = 0) => `₡${Number(amount || 0).toLocaleString()}`;
+
+    const getMaxValue = (data, key) => {
+        const arr = Array.isArray(data) ? data : [];
+        if (arr.length === 0) return 1;
+        const max = Math.max(...arr.map((item) => Number(item?.[key] || 0)));
+        return max <= 0 ? 1 : max;
     };
-
-    const formatCurrency = (amount) => `₡${amount.toLocaleString()}`;
-
-    const getMaxValue = (data, key) => Math.max(...data.map(item => item[key]));
 
     if (isLoading) {
         return (
@@ -78,6 +69,20 @@ export const SellerAnalytics = () => {
             </div>
         );
     }
+
+    const cm = analyticsData.customerMetrics || {};
+    const rb = analyticsData.revenueBreakdown || {};
+
+    // Fallbacks sanos
+    const totalCustomers = cm.totalCustomers ?? 0;
+    const newCustomers = cm.newCustomers ?? 0;
+    const returningCustomers = cm.returningCustomers ?? 0;
+    const avgOrderValue = cm.avgOrderValue ?? 0;
+    const customerSatisfaction = cm.customerSatisfaction ?? "—";
+
+    const monthlyMaxSales = getMaxValue(analyticsData.monthlyData, "sales");
+    const monthlyMaxRevenue = getMaxValue(analyticsData.monthlyData, "revenue");
+    const categoriesMaxRevenue = getMaxValue(analyticsData.productCategories, "revenue");
 
     return (
         <div className="dashboard-container analytics-container">
@@ -111,11 +116,9 @@ export const SellerAnalytics = () => {
                         <i className="fa fa-users"></i>
                     </div>
                     <div className="stat-content">
-                        <h3>{analyticsData.customerMetrics.totalCustomers}</h3>
+                        <h3>{totalCustomers}</h3>
                         <p>Total Clientes</p>
-                        <span className="stat-detail">
-                            {analyticsData.customerMetrics.newCustomers} nuevos este mes
-                        </span>
+                        <span className="stat-detail">{newCustomers} nuevos este periodo</span>
                     </div>
                 </div>
 
@@ -124,11 +127,9 @@ export const SellerAnalytics = () => {
                         <i className="fa fa-receipt"></i>
                     </div>
                     <div className="stat-content">
-                        <h3>{formatCurrency(analyticsData.customerMetrics.avgOrderValue)}</h3>
+                        <h3>{formatCurrency(avgOrderValue)}</h3>
                         <p>Valor Promedio del Pedido</p>
-                        <span className="stat-detail">
-                            +15% vs mes anterior
-                        </span>
+                        <span className="stat-detail">vs. periodo anterior (referencial)</span>
                     </div>
                 </div>
 
@@ -137,10 +138,10 @@ export const SellerAnalytics = () => {
                         <i className="fa fa-heart"></i>
                     </div>
                     <div className="stat-content">
-                        <h3>{analyticsData.customerMetrics.customerSatisfaction}</h3>
+                        <h3>{customerSatisfaction}</h3>
                         <p>Satisfacción del Cliente</p>
                         <span className="stat-detail">
-                            Basado en {analyticsData.customerMetrics.totalCustomers} reseñas
+                            {totalCustomers > 0 ? `Basado en ${totalCustomers} clientes` : "Sin datos"}
                         </span>
                     </div>
                 </div>
@@ -150,10 +151,15 @@ export const SellerAnalytics = () => {
                         <i className="fa fa-redo"></i>
                     </div>
                     <div className="stat-content">
-                        <h3>{((analyticsData.customerMetrics.returningCustomers / analyticsData.customerMetrics.totalCustomers) * 100).toFixed(1)}%</h3>
+                        <h3>
+                            {totalCustomers > 0
+                                ? ((returningCustomers / totalCustomers) * 100).toFixed(1)
+                                : "0.0"}
+                            %
+                        </h3>
                         <p>Clientes Recurrentes</p>
                         <span className="stat-detail">
-                            {analyticsData.customerMetrics.returningCustomers} de {analyticsData.customerMetrics.totalCustomers} clientes
+                            {returningCustomers} de {totalCustomers} clientes
                         </span>
                     </div>
                 </div>
@@ -185,7 +191,7 @@ export const SellerAnalytics = () => {
                                         <div
                                             className="chart-bar sales-bar"
                                             style={{
-                                                height: `${(data.sales / getMaxValue(analyticsData.monthlyData, 'sales')) * 100}%`
+                                                height: `${(Number(data.sales || 0) / monthlyMaxSales) * 100}%`,
                                             }}
                                         ></div>
                                         <span className="bar-label">{data.month}</span>
@@ -202,11 +208,13 @@ export const SellerAnalytics = () => {
                                         <div
                                             className="chart-bar revenue-bar"
                                             style={{
-                                                height: `${(data.revenue / getMaxValue(analyticsData.monthlyData, 'revenue')) * 100}%`
+                                                height: `${(Number(data.revenue || 0) / monthlyMaxRevenue) * 100}%`,
                                             }}
                                         ></div>
                                         <span className="bar-label">{data.month}</span>
-                                        <span className="bar-value">{formatCurrency(data.revenue / 1000)}K</span>
+                                        <span className="bar-value">
+                                            {formatCurrency((Number(data.revenue || 0) / 1000).toFixed(0))}K
+                                        </span>
                                     </div>
                                 ))}
                             </div>
@@ -218,11 +226,13 @@ export const SellerAnalytics = () => {
                 <div className="section-card top-products-analytics">
                     <div className="section-header">
                         <h2>🏆 Productos Más Vendidos</h2>
-                        <span className="period-info">Últimos {selectedPeriod === '3months' ? '3 meses' : selectedPeriod === '6months' ? '6 meses' : 'año'}</span>
+                        <span className="period-info">
+                            Últimos {selectedPeriod === "3months" ? "3 meses" : selectedPeriod === "6months" ? "6 meses" : "12 meses"}
+                        </span>
                     </div>
                     <div className="products-analytics-list">
                         {analyticsData.topProducts.map((product, index) => (
-                            <div key={product.id} className="product-analytics-item">
+                            <div key={`${product.id || product.name}-${index}`} className="product-analytics-item">
                                 <div className="product-rank">#{index + 1}</div>
                                 <div className="product-details">
                                     <h4>{product.name}</h4>
@@ -248,10 +258,11 @@ export const SellerAnalytics = () => {
                                 </div>
                             </div>
                         ))}
+                        {analyticsData.topProducts.length === 0 && <p>No hay datos en este periodo.</p>}
                     </div>
                 </div>
 
-                {/* Categorías de productos */}
+                {/* Categorías */}
                 <div className="section-card categories-analytics">
                     <div className="section-header">
                         <h2>📦 Rendimiento por Categoría</h2>
@@ -278,13 +289,14 @@ export const SellerAnalytics = () => {
                                         <div
                                             className="indicator-fill"
                                             style={{
-                                                width: `${(category.revenue / getMaxValue(analyticsData.productCategories, 'revenue')) * 100}%`
+                                                width: `${(Number(category.revenue || 0) / categoriesMaxRevenue) * 100}%`,
                                             }}
                                         ></div>
                                     </div>
                                 </div>
                             </div>
                         ))}
+                        {analyticsData.productCategories.length === 0 && <p>Sin ventas por categoría en este periodo.</p>}
                     </div>
                 </div>
 
@@ -299,19 +311,19 @@ export const SellerAnalytics = () => {
                                 <div
                                     className="pie-slice product-sales"
                                     style={{
-                                        background: `conic-gradient(#4caf50 0deg ${analyticsData.revenueBreakdown.productSales * 3.6}deg, transparent 0deg)`
+                                        background: `conic-gradient(#4caf50 0deg ${(rb.productSales || 0) * 3.6}deg, transparent 0deg)`,
                                     }}
                                 ></div>
                                 <div
                                     className="pie-slice shipping"
                                     style={{
-                                        background: `conic-gradient(transparent 0deg ${analyticsData.revenueBreakdown.productSales * 3.6}deg, #ff9800 ${analyticsData.revenueBreakdown.productSales * 3.6}deg ${(analyticsData.revenueBreakdown.productSales + analyticsData.revenueBreakdown.shipping) * 3.6}deg, transparent 0deg)`
+                                        background: `conic-gradient(transparent 0deg ${(rb.productSales || 0) * 3.6}deg, #ff9800 ${(rb.productSales || 0) * 3.6}deg ${((rb.productSales || 0) + (rb.shipping || 0)) * 3.6}deg, transparent 0deg)`,
                                     }}
                                 ></div>
                                 <div
                                     className="pie-slice taxes"
                                     style={{
-                                        background: `conic-gradient(transparent 0deg ${(analyticsData.revenueBreakdown.productSales + analyticsData.revenueBreakdown.shipping) * 3.6}deg, #f44336 ${(analyticsData.revenueBreakdown.productSales + analyticsData.revenueBreakdown.shipping) * 3.6}deg 360deg)`
+                                        background: `conic-gradient(transparent 0deg ${((rb.productSales || 0) + (rb.shipping || 0)) * 3.6}deg, #f44336 ${((rb.productSales || 0) + (rb.shipping || 0)) * 3.6}deg 360deg)`,
                                     }}
                                 ></div>
                             </div>
@@ -320,23 +332,23 @@ export const SellerAnalytics = () => {
                             <div className="legend-item">
                                 <div className="legend-color product-sales-color"></div>
                                 <span>Ventas de Productos</span>
-                                <strong>{analyticsData.revenueBreakdown.productSales}%</strong>
+                                <strong>{rb.productSales ?? 0}%</strong>
                             </div>
                             <div className="legend-item">
                                 <div className="legend-color shipping-color"></div>
                                 <span>Envíos</span>
-                                <strong>{analyticsData.revenueBreakdown.shipping}%</strong>
+                                <strong>{rb.shipping ?? 0}%</strong>
                             </div>
                             <div className="legend-item">
                                 <div className="legend-color taxes-color"></div>
                                 <span>Impuestos</span>
-                                <strong>{analyticsData.revenueBreakdown.taxes}%</strong>
+                                <strong>{rb.taxes ?? 0}%</strong>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Recomendaciones */}
+                {/* Recomendaciones (placeholder) */}
                 <div className="section-card recommendations">
                     <div className="section-header">
                         <h2>💡 Recomendaciones para Mejorar</h2>
@@ -347,30 +359,30 @@ export const SellerAnalytics = () => {
                                 <i className="fa fa-exclamation-circle"></i>
                             </div>
                             <div className="recommendation-content">
-                                <h4>Aumentar inventario de productos populares</h4>
-                                <p>Los collares artesanales representan el 35% de tus ventas. Considera aumentar la variedad en esta categoría.</p>
+                                <h4>Aumentá stock de lo más vendido</h4>
+                                <p>
+                                    Revisá el Top 3: reforzá inventario y crea bundles para subir ticket promedio.
+                                </p>
                             </div>
                             <div className="recommendation-priority high">Alta</div>
                         </div>
-
                         <div className="recommendation-item medium-priority">
                             <div className="recommendation-icon">
                                 <i className="fa fa-chart-line"></i>
                             </div>
                             <div className="recommendation-content">
-                                <h4>Promocionar categorías de menor rendimiento</h4>
-                                <p>La categoría de Arte tiene potencial de crecimiento. Considera crear promociones especiales.</p>
+                                <h4>Promocioná categorías débiles</h4>
+                                <p>Hacé campañas y descuentos dirigidos en la categoría con menos ingresos.</p>
                             </div>
                             <div className="recommendation-priority medium">Media</div>
                         </div>
-
                         <div className="recommendation-item low-priority">
                             <div className="recommendation-icon">
                                 <i className="fa fa-users"></i>
                             </div>
                             <div className="recommendation-content">
-                                <h4>Programa de fidelización</h4>
-                                <p>Con un 73% de clientes recurrentes, un programa de recompensas podría aumentar las ventas.</p>
+                                <h4>Fidelización</h4>
+                                <p>Enviá cupones a clientes recurrentes para incentivar recompras.</p>
                             </div>
                             <div className="recommendation-priority low">Baja</div>
                         </div>
@@ -379,4 +391,4 @@ export const SellerAnalytics = () => {
             </div>
         </div>
     );
-}
+};

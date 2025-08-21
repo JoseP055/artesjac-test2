@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../../modules/auth/AuthContext';
-import '../../styles/dashboard.css';
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { useAuth } from "../../modules/auth/AuthContext";
+import "../../styles/dashboard.css";
+import { DashboardAPI } from "../../api/dashboard.service";
 
 export const SellerDashboard = () => {
     const { user } = useAuth();
@@ -11,191 +12,103 @@ export const SellerDashboard = () => {
         activeProducts: 0,
         pendingOrders: 0,
         totalOrders: 0,
-        avgRating: 0
+        avgRating: 0,
     });
     const [recentOrders, setRecentOrders] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        const loadDashboardData = async () => {
+            setLoading(true);
+            try {
+                const res = await DashboardAPI.getSeller();
+                const d = res?.data || {};
+                setStats({
+                    totalSales: d.totalSales || 0,
+                    totalRevenue: d.totalRevenue || 0,
+                    activeProducts: d.activeProducts || 0,
+                    pendingOrders: d.pendingOrders || 0,
+                    totalOrders: d.totalOrders || 0,
+                    avgRating: d.avgRating || 0,
+                });
+                setRecentOrders(Array.isArray(d.recentOrders) ? d.recentOrders : []);
+            } catch (e) {
+                console.error("Error cargando dashboard:", e);
+                alert(e?.response?.data?.error || "No se pudo cargar el dashboard.");
+                setStats({
+                    totalSales: 0,
+                    totalRevenue: 0,
+                    activeProducts: 0,
+                    pendingOrders: 0,
+                    totalOrders: 0,
+                    avgRating: 0,
+                });
+                setRecentOrders([]);
+            } finally {
+                setLoading(false);
+            }
+        };
         loadDashboardData();
     }, []);
 
-    const loadDashboardData = () => {
-        // Cargar datos del dashboard del vendedor
-        setTimeout(() => {
-            setStats({
-                totalSales: 45,
-                totalRevenue: 485000,
-                activeProducts: 12,
-                pendingOrders: 3,
-                totalOrders: 45,
-                avgRating: 4.8
-            });
-
-            // Cargar pedidos desde la misma fuente que SellerOrders
-            const savedOrders = localStorage.getItem(`orders_${user?.id}`);
-            let ordersData = [];
-
-            if (savedOrders) {
-                try {
-                    ordersData = JSON.parse(savedOrders);
-                } catch (error) {
-                    console.error('Error al cargar pedidos:', error);
-                    ordersData = getDefaultOrders();
-                }
-            } else {
-                ordersData = getDefaultOrders();
-            }
-
-            // Mostrar solo los 5 más recientes
-            const recentOrders = ordersData
-                .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-                .slice(0, 5)
-                .map(order => ({
-                    id: order.id,
-                    date: order.date,
-                    customer: order.customer.name,
-                    status: order.status,
-                    total: order.total,
-                    items: order.items.map(item => item.name)
-                }));
-
-            setRecentOrders(recentOrders);
-        }, 1000);
-    };
-
-    const getDefaultOrders = () => [
-        {
-            id: 'ORD-001',
-            date: '2024-01-15',
-            customer: {
-                name: 'Ana Rojas',
-                email: 'ana.rojas@email.com',
-                phone: '+506 8888-1111',
-                address: 'San José, Costa Rica'
-            },
-            status: 'pendiente',
-            total: 25000,
-            items: [
-                { name: 'Collar artesanal', quantity: 1, price: 12000 },
-                { name: 'Bolso tejido', quantity: 1, price: 13000 }
-            ],
-            paymentMethod: 'Transferencia',
-            notes: 'Cliente solicita entrega urgente',
-            createdAt: '2024-01-15T10:30:00Z',
-            updatedAt: '2024-01-15T10:30:00Z'
-        },
-        {
-            id: 'ORD-002',
-            date: '2024-01-14',
-            customer: {
-                name: 'Carlos Mendez',
-                email: 'carlos.mendez@email.com',
-                phone: '+506 8888-2222',
-                address: 'Cartago, Costa Rica'
-            },
-            status: 'enviado',
-            total: 18500,
-            items: [
-                { name: 'Cuadro paisaje', quantity: 1, price: 18500 }
-            ],
-            paymentMethod: 'Tarjeta',
-            notes: '',
-            trackingNumber: 'TR-123456789',
-            createdAt: '2024-01-14T14:20:00Z',
-            updatedAt: '2024-01-15T09:15:00Z'
-        },
-        {
-            id: 'ORD-003',
-            date: '2024-01-13',
-            customer: {
-                name: 'María González',
-                email: 'maria.gonzalez@email.com',
-                phone: '+506 8888-3333',
-                address: 'Alajuela, Costa Rica'
-            },
-            status: 'entregado',
-            total: 32000,
-            items: [
-                { name: 'Vasija cerámica', quantity: 1, price: 25000 },
-                { name: 'Aretes madera', quantity: 1, price: 7000 }
-            ],
-            paymentMethod: 'Efectivo',
-            notes: 'Entregado sin problemas',
-            deliveredAt: '2024-01-16T16:30:00Z',
-            createdAt: '2024-01-13T11:45:00Z',
-            updatedAt: '2024-01-16T16:30:00Z'
-        },
-        {
-            id: 'ORD-004',
-            date: '2024-01-12',
-            customer: {
-                name: 'Luis Pérez',
-                email: 'luis.perez@email.com',
-                phone: '+506 8888-4444',
-                address: 'Heredia, Costa Rica'
-            },
-            status: 'en_proceso',
-            total: 15000,
-            items: [
-                { name: 'Maceta decorativa', quantity: 1, price: 15000 }
-            ],
-            paymentMethod: 'Transferencia',
-            notes: 'Producto en preparación',
-            createdAt: '2024-01-12T09:00:00Z',
-            updatedAt: '2024-01-14T10:00:00Z'
-        },
-        {
-            id: 'ORD-005',
-            date: '2024-01-11',
-            customer: {
-                name: 'Sandra López',
-                email: 'sandra.lopez@email.com',
-                phone: '+506 8888-5555',
-                address: 'Puntarenas, Costa Rica'
-            },
-            status: 'retraso',
-            total: 42000,
-            items: [
-                { name: 'Set de platos artesanales', quantity: 1, price: 42000 }
-            ],
-            paymentMethod: 'Tarjeta',
-            notes: 'Retraso en producción por falta de material',
-            createdAt: '2024-01-11T13:20:00Z',
-            updatedAt: '2024-01-15T08:00:00Z'
-        }
-    ];
-
     const getStatusColor = (status) => {
         switch (status) {
-            case 'entregado': return '#4caf50';
-            case 'enviado': return '#9c27b0';
-            case 'en_proceso': return '#ff9800';
-            case 'pendiente': return '#2196f3';
-            case 'cancelado': return '#f44336';
-            case 'retraso': return '#ff5722';
-            default: return '#666';
+            case "entregado":
+                return "#4caf50";
+            case "enviado":
+                return "#9c27b0";
+            case "en_proceso":
+                return "#ff9800";
+            case "pendiente":
+                return "#2196f3";
+            case "cancelado":
+                return "#f44336";
+            case "retraso":
+                return "#ff5722";
+            default:
+                return "#666";
         }
     };
 
     const getStatusText = (status) => {
         switch (status) {
-            case 'entregado': return 'Entregado';
-            case 'enviado': return 'Enviado';
-            case 'en_proceso': return 'En Proceso';
-            case 'pendiente': return 'Pendiente';
-            case 'cancelado': return 'Cancelado';
-            case 'retraso': return 'Con Retraso';
-            default: return status;
+            case "entregado":
+                return "Entregado";
+            case "enviado":
+                return "Enviado";
+            case "en_proceso":
+                return "En Proceso";
+            case "pendiente":
+                return "Pendiente";
+            case "cancelado":
+                return "Cancelado";
+            case "retraso":
+                return "Con Retraso";
+            default:
+                return status;
         }
     };
+
+    if (loading) {
+        return (
+            <div className="dashboard-container">
+                <div className="loading-container">
+                    <div className="loading-spinner"></div>
+                    <p>Cargando dashboard...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="dashboard-container seller-dashboard">
             {/* Header del Dashboard */}
             <div className="dashboard-header">
                 <div className="welcome-section">
-                    <h1>¡Bienvenido, {user?.name || 'Vendedor'}! 🏪</h1>
-                    <p className="business-name">{user?.businessName || user?.name || 'Mi Tienda'}</p>
+                    <h1>¡Bienvenido, {user?.name || "Vendedor"}! 🏪</h1>
+                    <p className="business-name">
+                        {user?.businessName || user?.name || "Mi Tienda"}
+                    </p>
                     <p>Tu centro de gestión de ventas</p>
                 </div>
                 <div className="user-avatar seller">
@@ -210,9 +123,9 @@ export const SellerDashboard = () => {
                         <i className="fa fa-dollar-sign"></i>
                     </div>
                     <div className="stat-content">
-                        <h3>₡{stats.totalRevenue.toLocaleString()}</h3>
-                        <p>Ingresos Totales</p>
-                        <span className="stat-trend positive">+12% este mes</span>
+                        <h3>₡{Number(stats.totalRevenue).toLocaleString()}</h3>
+                        <p>Ingresos Totales (entregado)</p>
+                        <span className="stat-trend positive">Referencia</span>
                     </div>
                 </div>
 
@@ -222,8 +135,8 @@ export const SellerDashboard = () => {
                     </div>
                     <div className="stat-content">
                         <h3>{stats.totalSales}</h3>
-                        <p>Ventas Totales</p>
-                        <span className="stat-trend positive">+8% este mes</span>
+                        <p>Unidades Vendidas</p>
+                        <span className="stat-trend positive">Referencia</span>
                     </div>
                 </div>
 
@@ -234,7 +147,7 @@ export const SellerDashboard = () => {
                     <div className="stat-content">
                         <h3>{stats.activeProducts}</h3>
                         <p>Productos Activos</p>
-                        <span className="stat-trend neutral">Sin cambios</span>
+                        <span className="stat-trend neutral">—</span>
                     </div>
                 </div>
 
@@ -256,7 +169,7 @@ export const SellerDashboard = () => {
                     <div className="stat-content">
                         <h3>{stats.avgRating}</h3>
                         <p>Calificación Promedio</p>
-                        <span className="stat-trend positive">Excelente</span>
+                        <span className="stat-trend positive">—</span>
                     </div>
                 </div>
 
@@ -267,7 +180,7 @@ export const SellerDashboard = () => {
                     <div className="stat-content">
                         <h3>{stats.totalOrders}</h3>
                         <p>Pedidos Totales</p>
-                        <span className="stat-trend positive">+15% este mes</span>
+                        <span className="stat-trend positive">—</span>
                     </div>
                 </div>
             </div>
@@ -308,7 +221,9 @@ export const SellerDashboard = () => {
                 <div className="section-card recent-orders">
                     <div className="section-header">
                         <h2>📦 Pedidos Recientes</h2>
-                        <Link to="/seller/orders" className="view-all-link">Ver todos</Link>
+                        <Link to="/seller/orders" className="view-all-link">
+                            Ver todos
+                        </Link>
                     </div>
                     <div className="orders-table-container">
                         <div className="orders-table">
@@ -319,11 +234,13 @@ export const SellerDashboard = () => {
                                 <div className="header-cell">Estado</div>
                                 <div className="header-cell">Total</div>
                             </div>
-                            {recentOrders.slice(0, 5).map(order => (
+                            {recentOrders.slice(0, 5).map((order) => (
                                 <div key={order.id} className="table-row">
                                     <div className="table-cell order-id">#{order.id}</div>
                                     <div className="table-cell customer-name">{order.customer}</div>
-                                    <div className="table-cell order-date">{new Date(order.date).toLocaleDateString('es-CR')}</div>
+                                    <div className="table-cell order-date">
+                                        {new Date(order.date).toLocaleDateString("es-CR")}
+                                    </div>
                                     <div className="table-cell">
                                         <span
                                             className="status-badge"
@@ -332,9 +249,17 @@ export const SellerDashboard = () => {
                                             {getStatusText(order.status)}
                                         </span>
                                     </div>
-                                    <div className="table-cell order-total">₡{order.total.toLocaleString()}</div>
+                                    <div className="table-cell order-total">
+                                        ₡{Number(order.total).toLocaleString()}
+                                    </div>
                                 </div>
                             ))}
+                            {recentOrders.length === 0 && (
+                                <div className="empty-state">
+                                    <i className="fa fa-inbox"></i>
+                                    <h3>No hay pedidos recientes</h3>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -347,28 +272,34 @@ export const SellerDashboard = () => {
                             <i className="fa fa-camera"></i>
                             <div>
                                 <h4>Fotos de calidad</h4>
-                                <p>Usa imágenes claras y bien iluminadas de tus productos para atraer más compradores.</p>
+                                <p>
+                                    Usá imágenes claras y bien iluminadas de tus productos para
+                                    atraer más compradores.
+                                </p>
                             </div>
                         </div>
                         <div className="tip-item">
                             <i className="fa fa-edit"></i>
                             <div>
                                 <h4>Descripciones detalladas</h4>
-                                <p>Incluye información completa sobre materiales, dimensiones y proceso de elaboración.</p>
+                                <p>
+                                    Incluí información de materiales, dimensiones y proceso de
+                                    elaboración.
+                                </p>
                             </div>
                         </div>
                         <div className="tip-item">
                             <i className="fa fa-shipping-fast"></i>
                             <div>
                                 <h4>Envíos rápidos</h4>
-                                <p>Procesa los pedidos rápidamente para mantener clientes satisfechos.</p>
+                                <p>Procesá los pedidos rápido para mantener clientes felices.</p>
                             </div>
                         </div>
                         <div className="tip-item">
                             <i className="fa fa-comments"></i>
                             <div>
                                 <h4>Comunicación activa</h4>
-                                <p>Responde rápidamente a preguntas y mantén informados a tus clientes.</p>
+                                <p>Respondé preguntas y mantené informados a tus clientes.</p>
                             </div>
                         </div>
                     </div>
@@ -383,8 +314,14 @@ export const SellerDashboard = () => {
                                 <i className="fa fa-exclamation-triangle"></i>
                                 <div>
                                     <h4>Pedidos pendientes</h4>
-                                    <p>Tienes {stats.pendingOrders} pedidos esperando ser procesados.</p>
-                                    <Link to="/seller/orders?status=pending" className="alert-action">
+                                    <p>
+                                        Tenés {stats.pendingOrders} pedidos esperando ser
+                                        procesados.
+                                    </p>
+                                    <Link
+                                        to="/seller/orders?status=pendiente"
+                                        className="alert-action"
+                                    >
                                         Revisar pedidos
                                     </Link>
                                 </div>
