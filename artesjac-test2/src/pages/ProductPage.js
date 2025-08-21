@@ -1,3 +1,4 @@
+// src/pages/ProductPage.js
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../modules/auth/AuthContext";
@@ -25,7 +26,7 @@ const catLabel = (c) => {
     return map[c] || (c ? c[0].toUpperCase() + c.slice(1) : "General");
 };
 
-// Saca la primera imagen válida del arreglo
+// Saca la primera imagen válida del arreglo (se usa para carrito)
 const firstImg = (p) => {
     const arr = Array.isArray(p?.images) ? p.images : [];
     const candidate = arr.find(Boolean);
@@ -170,6 +171,33 @@ export const ProductPage = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [slugOrId]);
 
+    // ✅ URL de imagen robusta con fallbacks (dentro del componente)
+    const imgSrc = React.useMemo(() => {
+        if (!product) return noImage;
+
+        // 1) Tomamos la primera imagen disponible
+        const raw =
+            Array.isArray(product?.images) && product.images.length
+                ? product.images.find(Boolean)
+                : product?.image || product?.img || product?.thumbnail || null;
+
+        if (!raw) return noImage;
+
+        // 2) Normalizamos slashes
+        const normalized = String(raw).replace(/\\/g, "/");
+
+        try {
+            // 3) Resolver URL (puede devolver undefined si no aplica)
+            const resolved = resolveImgUrl(normalized);
+
+            // 4) Fallbacks en orden: resolved || raw || noImage
+            return resolved || normalized || noImage;
+        } catch {
+            // 5) Si resolve tira error, igual probamos con la cruda
+            return normalized || noImage;
+        }
+    }, [product]);
+
     // Agregar al carrito (igual)
     const handleAddToCart = () => {
         if (!product) return;
@@ -273,8 +301,6 @@ export const ProductPage = () => {
         );
     }
 
-    const img = firstImg(product);
-
     return (
         <main className="product-container">
             {/* Breadcrumb */}
@@ -292,9 +318,14 @@ export const ProductPage = () => {
                     <div className="product-image-main">
                         <img
                             className="product-image-sim large"
-                            src={img ? resolveImgUrl(img) : noImage}
+                            src={imgSrc}
                             alt={product.title}
+                            loading="lazy"
+                            decoding="async"
+                            referrerPolicy="no-referrer"
+                            crossOrigin="anonymous"
                             onError={(e) => {
+                                e.currentTarget.onerror = null;
                                 e.currentTarget.src = noImage;
                             }}
                         />
@@ -435,7 +466,7 @@ export const ProductPage = () => {
                                 <i className="fa fa-eye" /> Ver Tienda Completa
                             </Link>
 
-                            {/* Botón para evaluar TIENDA (mismo estilo de botón de reviews) */}
+                            {/* Botón para evaluar TIENDA */}
                             {user && user.userType === "buyer" && isObjectId(sellerInfo.id) && (
                                 <button
                                     onClick={() => setShowStoreReviewForm(true)}
@@ -450,7 +481,7 @@ export const ProductPage = () => {
                 </div>
             )}
 
-            {/* Reseñas del Producto (mismo diseño) */}
+            {/* Reseñas del Producto */}
             <div className="product-reviews-section">
                 <h2>⭐ Reseñas del Producto</h2>
                 {mergedReviews.length > 0 ? (
@@ -490,7 +521,7 @@ export const ProductPage = () => {
                 )}
             </div>
 
-            {/* Reseñas de la Tienda (mismo look & feel) */}
+            {/* Reseñas de la Tienda */}
             {sellerInfo && (
                 <div className="product-reviews-section">
                     <h2>🏪 Reseñas de la Tienda</h2>
@@ -537,7 +568,7 @@ export const ProductPage = () => {
                 </Link>
             </div>
 
-            {/* Modal para evaluar producto (mismo diseño) */}
+            {/* Modal para evaluar producto */}
             {showReviewForm && (
                 <div className="modal-overlay" onClick={() => setShowReviewForm(false)}>
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -584,7 +615,7 @@ export const ProductPage = () => {
                 </div>
             )}
 
-            {/* Modal para evaluar TIENDA (mismo diseño) */}
+            {/* Modal para evaluar TIENDA */}
             {showStoreReviewForm && (
                 <div
                     className="modal-overlay"
