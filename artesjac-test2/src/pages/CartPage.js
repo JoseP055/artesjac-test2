@@ -1,78 +1,146 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../modules/auth/AuthContext';
-import '../styles/cart.css';
+// src/pages/CartPage.js
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../modules/auth/AuthContext";
+import { CartAPI } from "../api/cart.service";
+import "../styles/cart.css";
+
+const mapApiItems = (apiItems = []) =>
+    apiItems.map((it) => {
+        const prod = it && typeof it.productId === "object" ? it.productId : null;
+
+        // id correcto para tus Links/handlers
+        const id = prod?._id || String(it.productId || "");
+
+        // nombre para tu UI
+        const title = prod?.title || it.productName || "Producto";
+
+        // precio numérico (prioridad: snapshot -> precio del producto -> lo que venga)
+        const numericPrice = Number(
+            it.priceAtAdd ?? prod?.price ?? it.numericPrice ?? 0
+        );
+
+        // categoría / slug (si existen)
+        const category = prod?.category || it.category || "";
+        const slug = prod?.slug;
+
+        // imagen (si existiera en el product)
+        const image =
+            Array.isArray(prod?.images) && prod.images.length
+                ? String(prod.images.find(Boolean)).replace(/\\/g, "/")
+                : it.image || null;
+
+        return {
+            id,                 // <- lo usa tu UI
+            productId: id,      // compatibilidad
+            slug,
+            name: title,        // tu UI muestra "name"
+            title,
+            numericPrice,
+            price: numericPrice,
+            quantity: Number(it.quantity || 1),
+            category,
+            image,
+        };
+    });
 
 export const CartPage = () => {
-    const { user } = useAuth();
+    const { token } = useAuth() || {};
+    const authToken =
+        token || localStorage.getItem("token") || localStorage.getItem("authToken");
+
     const navigate = useNavigate();
+
     const [cartItems, setCartItems] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-        loadCartItems();
-    }, []);
-
-    const loadCartItems = () => {
+    const loadCartItems = async () => {
         try {
-            const savedCart = localStorage.getItem('artesjac-cart');
-            if (savedCart && savedCart !== 'null') {
-                const cart = JSON.parse(savedCart);
-                setCartItems(cart);
+            if (authToken) {
+                const r = await CartAPI.mine(authToken);
+                const apiItems = r?.data?.data?.items || [];
+                setCartItems(mapApiItems(apiItems));
+            } else {
+                // Invitado: localStorage (misma UI)
+                const saved = localStorage.getItem("artesjac-cart");
+                const items = saved && saved !== "null" ? JSON.parse(saved) : [];
+                setCartItems(items);
             }
-        } catch (error) {
-            console.error('Error al cargar carrito:', error);
+        } catch (e) {
+            console.error("Error al cargar carrito:", e?.response?.data || e.message);
+            setCartItems([]);
         } finally {
             setIsLoading(false);
         }
     };
 
-    const updateQuantity = (productId, newQuantity) => {
-        if (newQuantity < 1) {
-            removeItem(productId);
-            return;
-        }
+    useEffect(() => {
+        loadCartItems();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
-        const updatedCart = cartItems.map(item =>
-            item.id === productId ? { ...item, quantity: newQuantity } : item
+    const updateQuantity = async (productId, newQuantity) => {
+        if (newQuantity < 1) return removeItem(productId);
+
+        try {
+            if (authToken) {
+                await CartAPI.update({ productId, quantity: newQuantity }, authToken);
+                await loadCartItems();
+            } else {
+                const updated = cartItems.map((it) =>
+                    it.id === productId ? { ...it, quantity: newQuantity } : it
+                );
+                setCartItems(updated);
+                localStorage.setItem("artesjac-cart", JSON.stringify(updated));
+            }
+        } catch (e) {
+            alert("No se pudo actualizar la cantidad");
+        }
+    };
+
+    const removeItem = async (productId) => {
+        try {
+            if (authToken) {
+                await CartAPI.remove(productId, authToken);
+                await loadCartItems();
+            } else {
+                const updated = cartItems.filter((it) => it.id !== productId);
+                setCartItems(updated);
+                localStorage.setItem("artesjac-cart", JSON.stringify(updated));
+            }
+        } catch (e) {
+            alert("No se pudo eliminar el producto");
+        }
+    };
+
+    const clearCart = async () => {
+        if (!window.confirm("¿Estás seguro de que deseas vaciar el carrito?")) return;
+        try {
+            if (authToken) {
+                await CartAPI.clear(authToken);
+                await loadCartItems();
+            } else {
+                setCartItems([]);
+                localStorage.setItem("artesjac-cart", JSON.stringify([]));
+            }
+        } catch (e) {
+            alert("No se pudo vaciar el carrito");
+        }
+    };
+
+    const calculateSubtotal = () =>
+        cartItems.reduce(
+            (acc, it) =>
+                acc + Number(it.numericPrice || 0) * Number(it.quantity || 0),
+            0
         );
 
-        setCartItems(updatedCart);
-        localStorage.setItem('artesjac-cart', JSON.stringify(updatedCart));
-    };
-
-    const removeItem = (productId) => {
-        const updatedCart = cartItems.filter(item => item.id !== productId);
-        setCartItems(updatedCart);
-        localStorage.setItem('artesjac-cart', JSON.stringify(updatedCart));
-    };
-
-    const clearCart = () => {
-        if (window.confirm('¿Estás seguro de que deseas vaciar el carrito?')) {
-            setCartItems([]);
-            localStorage.setItem('artesjac-cart', JSON.stringify([]));
-        }
-    };
-
-    const calculateSubtotal = () => {
-        return cartItems.reduce((total, item) => total + (item.numericPrice * item.quantity), 0);
-    };
-
-    const calculateShipping = () => {
-        const subtotal = calculateSubtotal();
-        return subtotal >= 50000 ? 0 : 3500; // Envío gratis para compras mayores a ₡50,000
-    };
-
-    const calculateTotal = () => {
-        return calculateSubtotal() + calculateShipping();
-    };
+    const calculateShipping = () => (calculateSubtotal() >= 50000 ? 0 : 3500);
+    const calculateTotal = () => calculateSubtotal() + calculateShipping();
 
     const handleCheckout = () => {
-        if (cartItems.length === 0) {
-            alert('Tu carrito está vacío');
-            return;
-        }
-        navigate('/checkout');
+        if (cartItems.length === 0) return alert("Tu carrito está vacío");
+        navigate("/checkout");
     };
 
     if (isLoading) {
@@ -115,7 +183,7 @@ export const CartPage = () => {
                         </div>
 
                         <div className="items-list">
-                            {cartItems.map(item => (
+                            {cartItems.map((item) => (
                                 <div key={item.id} className="cart-item">
                                     <div className="item-image">
                                         <div className="product-image-sim"></div>
@@ -123,22 +191,28 @@ export const CartPage = () => {
 
                                     <div className="item-details">
                                         <Link to={`/product/${item.id}`} className="item-name">
-                                            {item.name}
+                                            {item.name || item.title}
                                         </Link>
                                         <p className="item-category">{item.category}</p>
-                                        <p className="item-price">₡{item.numericPrice.toLocaleString()}</p>
+                                        <p className="item-price">
+                                            ₡{Number(item.numericPrice || 0).toLocaleString()}
+                                        </p>
                                     </div>
 
                                     <div className="item-quantity">
                                         <button
-                                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                            onClick={() =>
+                                                updateQuantity(item.id, (item.quantity || 1) - 1)
+                                            }
                                             className="quantity-btn"
                                         >
                                             <i className="fa fa-minus"></i>
                                         </button>
                                         <span className="quantity-display">{item.quantity}</span>
                                         <button
-                                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                            onClick={() =>
+                                                updateQuantity(item.id, (item.quantity || 1) + 1)
+                                            }
                                             className="quantity-btn"
                                         >
                                             <i className="fa fa-plus"></i>
@@ -146,7 +220,11 @@ export const CartPage = () => {
                                     </div>
 
                                     <div className="item-total">
-                                        ₡{(item.numericPrice * item.quantity).toLocaleString()}
+                                        ₡
+                                        {(
+                                            Number(item.numericPrice || 0) *
+                                            Number(item.quantity || 0)
+                                        ).toLocaleString()}
                                     </div>
 
                                     <button
@@ -173,7 +251,9 @@ export const CartPage = () => {
                             <div className="summary-line">
                                 <span>Envío:</span>
                                 <span>
-                                    {calculateShipping() === 0 ? 'Gratis' : `₡${calculateShipping().toLocaleString()}`}
+                                    {calculateShipping() === 0
+                                        ? "Gratis"
+                                        : `₡${calculateShipping().toLocaleString()}`}
                                 </span>
                             </div>
 
@@ -183,11 +263,12 @@ export const CartPage = () => {
                                     ¡Felicidades! Tu pedido tiene envío gratis
                                 </div>
                             )}
-
                             {calculateShipping() > 0 && (
                                 <div className="shipping-notice">
                                     <i className="fa fa-info-circle"></i>
-                                    Agrega ₡{(50000 - calculateSubtotal()).toLocaleString()} más para envío gratis
+                                    Agrega ₡
+                                    {(50000 - calculateSubtotal()).toLocaleString()} más para
+                                    envío gratis
                                 </div>
                             )}
 
@@ -200,21 +281,6 @@ export const CartPage = () => {
                                 <i className="fa fa-credit-card"></i>
                                 Proceder al Pago
                             </button>
-
-                            <div className="security-badges">
-                                <div className="security-item">
-                                    <i className="fa fa-shield-alt"></i>
-                                    <span>Compra Segura</span>
-                                </div>
-                                <div className="security-item">
-                                    <i className="fa fa-truck"></i>
-                                    <span>Envío a Todo CR</span>
-                                </div>
-                                <div className="security-item">
-                                    <i className="fa fa-undo"></i>
-                                    <span>Garantía de Calidad</span>
-                                </div>
-                            </div>
                         </div>
 
                         <div className="continue-shopping">

@@ -1,8 +1,10 @@
 // src/pages/ShopPage.js
 import React, { useState, useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import "../styles/shop.css";
 import { ShopAPI } from "../api/shop.service";
+import { CartAPI } from "../api/cart.service";
+import { useAuth } from "../modules/auth/AuthContext";
 import { resolveImgUrl } from "../utils/resolveImgUrl";
 import noImage from "../assets/images/noimage.png";
 
@@ -103,6 +105,12 @@ const mockProducts = [
 ];
 
 export const ShopPage = () => {
+    const navigate = useNavigate();
+    const routerLocation = useLocation();
+    const { token } = useAuth() || {};
+    const authToken =
+        token || localStorage.getItem("token") || localStorage.getItem("authToken");
+
     // Estado
     const [products, setProducts] = useState([]);
     const [filteredProducts, setFilteredProducts] = useState([]);
@@ -112,17 +120,27 @@ export const ShopPage = () => {
     const [addingToCart, setAddingToCart] = useState(null);
     const [error, setError] = useState("");
 
-    // Cargar carrito al iniciar
+    // Cargar carrito al iniciar (DB si hay sesión; local si no)
     useEffect(() => {
-        try {
-            const savedCart = localStorage.getItem("artesjac-cart");
-            if (savedCart && savedCart !== "null" && savedCart !== "[]") {
-                setCartItems(JSON.parse(savedCart));
+        (async () => {
+            try {
+                if (authToken) {
+                    const res = await CartAPI.mine(authToken);
+                    const items = Array.isArray(res?.data?.data?.items)
+                        ? res.data.data.items
+                        : [];
+                    setCartItems(items);
+                } else {
+                    const savedCart = localStorage.getItem("artesjac-cart");
+                    if (savedCart && savedCart !== "null" && savedCart !== "[]") {
+                        setCartItems(JSON.parse(savedCart));
+                    }
+                }
+            } catch (e) {
+                console.error("Error al cargar carrito:", e?.response?.data || e.message);
             }
-        } catch (e) {
-            console.error("Error al cargar carrito:", e);
-        }
-    }, []);
+        })();
+    }, [authToken]);
 
     // Cargar productos desde backend (fallback a mock si falla)
     useEffect(() => {
@@ -221,64 +239,42 @@ export const ShopPage = () => {
         }
     };
 
-    // Agregar al carrito (compatibilidad con mock y API)
+    // Agregar al carrito (DB si hay sesión; si no, redirige a login)
     const addToCart = async (product) => {
-        // ID de carrito: _id o id o slug
-        const itemId = product._id || product.id || product.slug;
-        setAddingToCart(itemId);
+        const id = product._id || product.id || null;
+        const ref = product.slug || product.id || id;
+        const key = id || ref;
 
+        if (!id) {
+            // Si es un item mock sin _id real, mejor llévalo al detalle
+            if (ref) return navigate(`/product/${ref}`);
+            return alert("Producto inválido (sin id).");
+        }
+
+        setAddingToCart(key);
         try {
-            const savedCart = localStorage.getItem("artesjac-cart");
-            let currentCart = savedCart && savedCart !== "null" ? JSON.parse(savedCart) : [];
-
-            const idx = currentCart.findIndex((it) => it.id === itemId);
-            if (idx > -1) {
-                currentCart[idx].quantity = (currentCart[idx].quantity || 1) + 1;
-            } else {
-                currentCart.push({
-                    id: itemId,
-                    productId: itemId,
-                    slug: product.slug,
-                    name: product._displayName, // para UIs previas
-                    title: product._displayName,
-                    quantity: 1,
-                    image: firstImg(product),
-                    category: product._normalizedCategory,
-                    numericPrice: getNumericPrice(product),
-                    price: product.price,
-                });
+            await CartAPI.add({ productId: id, productRef: ref, quantity: 1 }, authToken);
+            // opcional: toast o badge
+        } catch (e) {
+            const status = e?.response?.status;
+            if (status === 401 || status === 403) {
+                const next = encodeURIComponent(`${routerLocation.pathname}${routerLocation.search || ""}`);
+                return navigate(`/login?next=${next}`);
             }
-
-            localStorage.setItem("artesjac-cart", JSON.stringify(currentCart));
-            setCartItems(currentCart);
-
-            // Notificación
-            await new Promise((r) => setTimeout(r, 500));
-            const notification = document.createElement("div");
-            notification.style.cssText = `
-        position: fixed; top: 20px; right: 20px;
-        background: linear-gradient(135deg, #4caf50, #45a049);
-        color: white; padding: 1rem 1.5rem; border-radius: 8px;
-        box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
-        z-index: 1000; font-weight: bold; animation: slideIn 0.3s ease;
-      `;
-            notification.innerHTML = `✅ ${product._displayName} agregado al carrito!`;
-            document.body.appendChild(notification);
-            setTimeout(() => notification.remove(), 3000);
-        } catch (error) {
-            console.error("Error al agregar al carrito:", error);
-            alert("Error al agregar el producto al carrito");
+            alert(e?.response?.data?.error || "No se pudo agregar al carrito");
         } finally {
             setAddingToCart(null);
         }
     };
 
-    // Totales del carrito
+
+
+    // Totales del carrito (compat: local o BD)
     const calculateCartTotal = () =>
-        cartItems.reduce((total, item) => total + (item.numericPrice * item.quantity), 0);
+        cartItems.reduce((total, item) => total + (Number(item.numericPrice || 0) * Number(item.quantity || 0)), 0);
 
     const getTotalCartItems = () =>
-        cartItems.reduce((total, item) => total + item.quantity, 0);
+        cartItems.reduce((total, item) => total + Number(item.quantity || 0), 0);
 
     return (
         <main className="shop-container">
