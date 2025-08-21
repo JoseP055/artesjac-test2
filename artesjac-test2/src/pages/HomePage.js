@@ -95,28 +95,6 @@ export const HomePage = () => {
           </div>
         </section>
 
-        {/* Productos destacados */}
-        <section className="home-featured">
-          <h2>Productos Destacados</h2>
-          <div className="product-grid">
-            <Link to="/product/1" className="product-card">
-              <div className="product-image-sim"></div>
-              <h3>Collar artesanal</h3>
-              <p>₡12.000</p>
-            </Link>
-            <Link to="/product/2" className="product-card">
-              <div className="product-image-sim"></div>
-              <h3>Bolso tejido</h3>
-              <p>₡18.500</p>
-            </Link>
-            <Link to="/product/3" className="product-card">
-              <div className="product-image-sim"></div>
-              <h3>Cuadro colorido</h3>
-              <p>₡22.000</p>
-            </Link>
-          </div>
-        </section>
-
         {/* Beneficios de la plataforma */}
         <section style={{
           backgroundColor: '#1f1f1f',
