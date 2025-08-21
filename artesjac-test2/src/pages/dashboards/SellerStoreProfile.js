@@ -1,97 +1,85 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../../modules/auth/AuthContext';
-import '../../styles/dashboard.css';
-import '../../styles/store-profile.css';
+// src/pages/seller/SellerStoreProfile.js
+import React, { useState, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
+import { useAuth } from "../../modules/auth/AuthContext";
+import "../../styles/dashboard.css";
+import "../../styles/store-profile.css";
+import { StoreProfileAPI } from "../../api/storeProfile.service";
 
 export const SellerStoreProfile = () => {
     const { user, updateUser } = useAuth();
+
     const [storeData, setStoreData] = useState({
-        businessName: '',
-        description: '',
-        location: {
-            address: '',
-            city: '',
-            province: '',
-            country: 'Costa Rica'
-        },
-        contact: {
-            email: '',
-            phone: '',
-            whatsapp: '',
-            website: ''
-        },
-        socialMedia: {
-            facebook: '',
-            instagram: '',
-            twitter: '',
-            tiktok: ''
-        },
-        businessInfo: {
-            category: '',
-            foundedYear: '',
-            employees: '',
-            specialties: []
-        },
+        businessName: "",
+        description: "",
+        location: { address: "", city: "", province: "", country: "Costa Rica" },
+        contact: { email: "", phone: "", whatsapp: "", website: "" },
+        socialMedia: { facebook: "", instagram: "", twitter: "", tiktok: "" },
+        businessInfo: { category: "", foundedYear: "", employees: "", specialties: [] },
         settings: {
             acceptsCustomOrders: true,
             minOrderAmount: 0,
             deliveryAreas: [],
             workingHours: {
-                monday: { open: '08:00', close: '17:00', enabled: true },
-                tuesday: { open: '08:00', close: '17:00', enabled: true },
-                wednesday: { open: '08:00', close: '17:00', enabled: true },
-                thursday: { open: '08:00', close: '17:00', enabled: true },
-                friday: { open: '08:00', close: '17:00', enabled: true },
-                saturday: { open: '09:00', close: '15:00', enabled: true },
-                sunday: { open: '10:00', close: '14:00', enabled: false }
-            }
-        }
+                monday: { open: "08:00", close: "17:00", enabled: true },
+                tuesday: { open: "08:00", close: "17:00", enabled: true },
+                wednesday: { open: "08:00", close: "17:00", enabled: true },
+                thursday: { open: "08:00", close: "17:00", enabled: true },
+                friday: { open: "08:00", close: "17:00", enabled: true },
+                saturday: { open: "09:00", close: "15:00", enabled: true },
+                sunday: { open: "10:00", close: "14:00", enabled: false },
+            },
+        },
     });
+
     const [isEditing, setIsEditing] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('general');
+    const [activeTab, setActiveTab] = useState("general");
 
     const businessCategories = [
-        'Artesanías Tradicionales',
-        'Joyería Artesanal',
-        'Textiles y Tejidos',
-        'Cerámica y Alfarería',
-        'Arte y Decoración',
-        'Productos de Madera',
-        'Productos Naturales',
-        'Otros'
+        "Artesanías Tradicionales",
+        "Joyería Artesanal",
+        "Textiles y Tejidos",
+        "Cerámica y Alfarería",
+        "Arte y Decoración",
+        "Productos de Madera",
+        "Productos Naturales",
+        "Otros",
     ];
 
     const provinces = [
-        'San José', 'Alajuela', 'Cartago', 'Heredia',
-        'Guanacaste', 'Puntarenas', 'Limón'
+        "San José",
+        "Alajuela",
+        "Cartago",
+        "Heredia",
+        "Guanacaste",
+        "Puntarenas",
+        "Limón",
     ];
 
-    const loadStoreData = useCallback(() => {
+    const loadStoreData = useCallback(async () => {
         setIsLoading(true);
-        setTimeout(() => {
-            const savedData = localStorage.getItem(`store_profile_${user?.id}`);
-            if (savedData) {
-                try {
-                    const parsed = JSON.parse(savedData);
-                    setStoreData(prev => ({ ...prev, ...parsed }));
-                } catch (error) {
-                    console.error('Error al cargar datos de la tienda:', error);
-                }
-            } else {
-                // Inicializar con datos del usuario si existen
-                setStoreData(prev => ({
-                    ...prev,
-                    businessName: user?.businessName || user?.name || '',
-                    contact: {
-                        ...prev.contact,
-                        email: user?.email || ''
-                    }
-                }));
-            }
+        try {
+            const res = await StoreProfileAPI.getMe();
+            const data = res?.data || {};
+            // Prefill con email/nombre del user si viene vacío
+            setStoreData((prev) => ({
+                ...prev,
+                ...data,
+                businessName: data.businessName || user?.businessName || user?.name || "",
+                contact: {
+                    email: data?.contact?.email || user?.email || "",
+                    phone: data?.contact?.phone || "",
+                    whatsapp: data?.contact?.whatsapp || "",
+                    website: data?.contact?.website || "",
+                },
+            }));
+        } catch (e) {
+            console.error("Error cargando perfil de tienda:", e);
+            alert("No se pudo cargar la información de la tienda.");
+        } finally {
             setIsLoading(false);
-        }, 500);
+        }
     }, [user]);
 
     useEffect(() => {
@@ -100,23 +88,23 @@ export const SellerStoreProfile = () => {
 
     const handleInputChange = (section, field, value) => {
         if (section) {
-            setStoreData(prev => ({
+            setStoreData((prev) => ({
                 ...prev,
                 [section]: {
                     ...prev[section],
-                    [field]: value
-                }
+                    [field]: value,
+                },
             }));
         } else {
-            setStoreData(prev => ({
+            setStoreData((prev) => ({
                 ...prev,
-                [field]: value
+                [field]: value,
             }));
         }
     };
 
     const handleWorkingHoursChange = (day, field, value) => {
-        setStoreData(prev => ({
+        setStoreData((prev) => ({
             ...prev,
             settings: {
                 ...prev.settings,
@@ -124,52 +112,51 @@ export const SellerStoreProfile = () => {
                     ...prev.settings.workingHours,
                     [day]: {
                         ...prev.settings.workingHours[day],
-                        [field]: value
-                    }
-                }
-            }
+                        [field]: value,
+                    },
+                },
+            },
         }));
     };
 
     const handleSpecialtiesChange = (specialty) => {
-        setStoreData(prev => {
-            const currentSpecialties = prev.businessInfo.specialties || [];
-            const updatedSpecialties = currentSpecialties.includes(specialty)
-                ? currentSpecialties.filter(s => s !== specialty)
-                : [...currentSpecialties, specialty];
-
-            return {
-                ...prev,
-                businessInfo: {
-                    ...prev.businessInfo,
-                    specialties: updatedSpecialties
-                }
-            };
+        setStoreData((prev) => {
+            const current = prev.businessInfo.specialties || [];
+            const updated = current.includes(specialty)
+                ? current.filter((s) => s !== specialty)
+                : [...current, specialty];
+            return { ...prev, businessInfo: { ...prev.businessInfo, specialties: updated } };
         });
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         try {
-            const dataToSave = {
+            const payload = {
                 ...storeData,
-                lastUpdated: new Date().toISOString()
+                // coerciones suaves
+                settings: {
+                    ...storeData.settings,
+                    minOrderAmount: Number(storeData.settings.minOrderAmount || 0),
+                },
             };
 
-            localStorage.setItem(`store_profile_${user?.id}`, JSON.stringify(dataToSave));
+            const res = await StoreProfileAPI.updateMe(payload);
+            const saved = res?.data;
 
-            // Actualizar datos básicos en el contexto de usuario
+            // Actualizar contexto de usuario (visible en header/menus)
             if (updateUser) {
                 updateUser({
-                    businessName: storeData.businessName,
-                    email: storeData.contact.email
+                    businessName: saved?.businessName || storeData.businessName,
+                    email: saved?.contact?.email || storeData.contact.email,
                 });
             }
 
+            setStoreData(saved);
             setIsEditing(false);
-            alert('Información de la tienda guardada exitosamente');
+            alert("Información de la tienda guardada exitosamente");
         } catch (error) {
-            console.error('Error al guardar:', error);
-            alert('Error al guardar la información. Por favor, intenta de nuevo.');
+            console.error("Error al guardar:", error);
+            alert(error?.response?.data?.error || "Error al guardar la información.");
         }
     };
 
@@ -180,13 +167,13 @@ export const SellerStoreProfile = () => {
 
     const getDayName = (day) => {
         const days = {
-            monday: 'Lunes',
-            tuesday: 'Martes',
-            wednesday: 'Miércoles',
-            thursday: 'Jueves',
-            friday: 'Viernes',
-            saturday: 'Sábado',
-            sunday: 'Domingo'
+            monday: "Lunes",
+            tuesday: "Martes",
+            wednesday: "Miércoles",
+            thursday: "Jueves",
+            friday: "Viernes",
+            saturday: "Sábado",
+            sunday: "Domingo",
         };
         return days[day] || day;
     };
@@ -233,33 +220,33 @@ export const SellerStoreProfile = () => {
                 )}
             </div>
 
-            {/* Tabs de Navegación */}
+            {/* Tabs */}
             <div className="tabs-container">
                 <div className="tabs-nav">
                     <button
-                        className={`tab-button ${activeTab === 'general' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('general')}
+                        className={`tab-button ${activeTab === "general" ? "active" : ""}`}
+                        onClick={() => setActiveTab("general")}
                     >
                         <i className="fa fa-info-circle"></i>
                         Información General
                     </button>
                     <button
-                        className={`tab-button ${activeTab === 'contact' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('contact')}
+                        className={`tab-button ${activeTab === "contact" ? "active" : ""}`}
+                        onClick={() => setActiveTab("contact")}
                     >
                         <i className="fa fa-address-book"></i>
                         Contacto y Ubicación
                     </button>
                     <button
-                        className={`tab-button ${activeTab === 'social' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('social')}
+                        className={`tab-button ${activeTab === "social" ? "active" : ""}`}
+                        onClick={() => setActiveTab("social")}
                     >
                         <i className="fa fa-share-alt"></i>
                         Redes Sociales
                     </button>
                     <button
-                        className={`tab-button ${activeTab === 'settings' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('settings')}
+                        className={`tab-button ${activeTab === "settings" ? "active" : ""}`}
+                        onClick={() => setActiveTab("settings")}
                     >
                         <i className="fa fa-cog"></i>
                         Configuración
@@ -267,8 +254,8 @@ export const SellerStoreProfile = () => {
                 </div>
 
                 <div className="tabs-content">
-                    {/* Tab: Información General */}
-                    {activeTab === 'general' && (
+                    {/* General */}
+                    {activeTab === "general" && (
                         <div className="tab-panel">
                             <div className="section-card">
                                 <h2>📋 Información General del Negocio</h2>
@@ -278,7 +265,7 @@ export const SellerStoreProfile = () => {
                                         <input
                                             type="text"
                                             value={storeData.businessName}
-                                            onChange={(e) => handleInputChange(null, 'businessName', e.target.value)}
+                                            onChange={(e) => handleInputChange(null, "businessName", e.target.value)}
                                             disabled={!isEditing}
                                             placeholder="Nombre de tu tienda o negocio"
                                             required
@@ -289,12 +276,14 @@ export const SellerStoreProfile = () => {
                                         <label>Categoría del Negocio</label>
                                         <select
                                             value={storeData.businessInfo.category}
-                                            onChange={(e) => handleInputChange('businessInfo', 'category', e.target.value)}
+                                            onChange={(e) => handleInputChange("businessInfo", "category", e.target.value)}
                                             disabled={!isEditing}
                                         >
                                             <option value="">Selecciona una categoría</option>
-                                            {businessCategories.map(cat => (
-                                                <option key={cat} value={cat}>{cat}</option>
+                                            {businessCategories.map((cat) => (
+                                                <option key={cat} value={cat}>
+                                                    {cat}
+                                                </option>
                                             ))}
                                         </select>
                                     </div>
@@ -303,7 +292,7 @@ export const SellerStoreProfile = () => {
                                         <label>Descripción de la Tienda</label>
                                         <textarea
                                             value={storeData.description}
-                                            onChange={(e) => handleInputChange(null, 'description', e.target.value)}
+                                            onChange={(e) => handleInputChange(null, "description", e.target.value)}
                                             disabled={!isEditing}
                                             placeholder="Describe tu tienda, productos y lo que te hace especial..."
                                             rows="4"
@@ -315,7 +304,7 @@ export const SellerStoreProfile = () => {
                                         <input
                                             type="number"
                                             value={storeData.businessInfo.foundedYear}
-                                            onChange={(e) => handleInputChange('businessInfo', 'foundedYear', e.target.value)}
+                                            onChange={(e) => handleInputChange("businessInfo", "foundedYear", e.target.value)}
                                             disabled={!isEditing}
                                             placeholder="2020"
                                             min="1900"
@@ -327,7 +316,7 @@ export const SellerStoreProfile = () => {
                                         <label>Número de Empleados</label>
                                         <select
                                             value={storeData.businessInfo.employees}
-                                            onChange={(e) => handleInputChange('businessInfo', 'employees', e.target.value)}
+                                            onChange={(e) => handleInputChange("businessInfo", "employees", e.target.value)}
                                             disabled={!isEditing}
                                         >
                                             <option value="">Selecciona</option>
@@ -341,7 +330,7 @@ export const SellerStoreProfile = () => {
                                     <div className="form-group full-width">
                                         <label>Especialidades</label>
                                         <div className="specialties-grid">
-                                            {businessCategories.map(specialty => (
+                                            {businessCategories.map((specialty) => (
                                                 <label key={specialty} className="checkbox-label">
                                                     <input
                                                         type="checkbox"
@@ -359,8 +348,8 @@ export const SellerStoreProfile = () => {
                         </div>
                     )}
 
-                    {/* Tab: Contacto y Ubicación */}
-                    {activeTab === 'contact' && (
+                    {/* Contacto y Ubicación */}
+                    {activeTab === "contact" && (
                         <div className="tab-panel">
                             <div className="section-card">
                                 <h2>📞 Información de Contacto</h2>
@@ -370,7 +359,7 @@ export const SellerStoreProfile = () => {
                                         <input
                                             type="email"
                                             value={storeData.contact.email}
-                                            onChange={(e) => handleInputChange('contact', 'email', e.target.value)}
+                                            onChange={(e) => handleInputChange("contact", "email", e.target.value)}
                                             disabled={!isEditing}
                                             placeholder="tu-email@ejemplo.com"
                                         />
@@ -381,7 +370,7 @@ export const SellerStoreProfile = () => {
                                         <input
                                             type="tel"
                                             value={storeData.contact.phone}
-                                            onChange={(e) => handleInputChange('contact', 'phone', e.target.value)}
+                                            onChange={(e) => handleInputChange("contact", "phone", e.target.value)}
                                             disabled={!isEditing}
                                             placeholder="+506 8888-8888"
                                         />
@@ -392,7 +381,7 @@ export const SellerStoreProfile = () => {
                                         <input
                                             type="tel"
                                             value={storeData.contact.whatsapp}
-                                            onChange={(e) => handleInputChange('contact', 'whatsapp', e.target.value)}
+                                            onChange={(e) => handleInputChange("contact", "whatsapp", e.target.value)}
                                             disabled={!isEditing}
                                             placeholder="+506 8888-8888"
                                         />
@@ -403,7 +392,7 @@ export const SellerStoreProfile = () => {
                                         <input
                                             type="url"
                                             value={storeData.contact.website}
-                                            onChange={(e) => handleInputChange('contact', 'website', e.target.value)}
+                                            onChange={(e) => handleInputChange("contact", "website", e.target.value)}
                                             disabled={!isEditing}
                                             placeholder="https://tu-sitio.com"
                                         />
@@ -419,7 +408,7 @@ export const SellerStoreProfile = () => {
                                         <input
                                             type="text"
                                             value={storeData.location.address}
-                                            onChange={(e) => handleInputChange('location', 'address', e.target.value)}
+                                            onChange={(e) => handleInputChange("location", "address", e.target.value)}
                                             disabled={!isEditing}
                                             placeholder="Dirección completa de tu negocio"
                                         />
@@ -430,7 +419,7 @@ export const SellerStoreProfile = () => {
                                         <input
                                             type="text"
                                             value={storeData.location.city}
-                                            onChange={(e) => handleInputChange('location', 'city', e.target.value)}
+                                            onChange={(e) => handleInputChange("location", "city", e.target.value)}
                                             disabled={!isEditing}
                                             placeholder="Ciudad"
                                         />
@@ -440,12 +429,14 @@ export const SellerStoreProfile = () => {
                                         <label>Provincia</label>
                                         <select
                                             value={storeData.location.province}
-                                            onChange={(e) => handleInputChange('location', 'province', e.target.value)}
+                                            onChange={(e) => handleInputChange("location", "province", e.target.value)}
                                             disabled={!isEditing}
                                         >
                                             <option value="">Selecciona una provincia</option>
-                                            {provinces.map(province => (
-                                                <option key={province} value={province}>{province}</option>
+                                            {provinces.map((province) => (
+                                                <option key={province} value={province}>
+                                                    {province}
+                                                </option>
                                             ))}
                                         </select>
                                     </div>
@@ -455,7 +446,7 @@ export const SellerStoreProfile = () => {
                                         <input
                                             type="text"
                                             value={storeData.location.country}
-                                            onChange={(e) => handleInputChange('location', 'country', e.target.value)}
+                                            onChange={(e) => handleInputChange("location", "country", e.target.value)}
                                             disabled={!isEditing}
                                             placeholder="Costa Rica"
                                         />
@@ -465,21 +456,20 @@ export const SellerStoreProfile = () => {
                         </div>
                     )}
 
-                    {/* Tab: Redes Sociales */}
-                    {activeTab === 'social' && (
+                    {/* Social */}
+                    {activeTab === "social" && (
                         <div className="tab-panel">
                             <div className="section-card">
                                 <h2>📱 Redes Sociales</h2>
                                 <div className="form-grid">
                                     <div className="form-group">
                                         <label>
-                                            <i className="fab fa-facebook"></i>
-                                            Facebook
+                                            <i className="fab fa-facebook"></i> Facebook
                                         </label>
                                         <input
                                             type="url"
                                             value={storeData.socialMedia.facebook}
-                                            onChange={(e) => handleInputChange('socialMedia', 'facebook', e.target.value)}
+                                            onChange={(e) => handleInputChange("socialMedia", "facebook", e.target.value)}
                                             disabled={!isEditing}
                                             placeholder="https://facebook.com/tu-pagina"
                                         />
@@ -487,13 +477,12 @@ export const SellerStoreProfile = () => {
 
                                     <div className="form-group">
                                         <label>
-                                            <i className="fab fa-instagram"></i>
-                                            Instagram
+                                            <i className="fab fa-instagram"></i> Instagram
                                         </label>
                                         <input
                                             type="url"
                                             value={storeData.socialMedia.instagram}
-                                            onChange={(e) => handleInputChange('socialMedia', 'instagram', e.target.value)}
+                                            onChange={(e) => handleInputChange("socialMedia", "instagram", e.target.value)}
                                             disabled={!isEditing}
                                             placeholder="https://instagram.com/tu-usuario"
                                         />
@@ -501,13 +490,12 @@ export const SellerStoreProfile = () => {
 
                                     <div className="form-group">
                                         <label>
-                                            <i className="fab fa-twitter"></i>
-                                            Twitter
+                                            <i className="fab fa-twitter"></i> Twitter
                                         </label>
                                         <input
                                             type="url"
                                             value={storeData.socialMedia.twitter}
-                                            onChange={(e) => handleInputChange('socialMedia', 'twitter', e.target.value)}
+                                            onChange={(e) => handleInputChange("socialMedia", "twitter", e.target.value)}
                                             disabled={!isEditing}
                                             placeholder="https://twitter.com/tu-usuario"
                                         />
@@ -515,13 +503,12 @@ export const SellerStoreProfile = () => {
 
                                     <div className="form-group">
                                         <label>
-                                            <i className="fab fa-tiktok"></i>
-                                            TikTok
+                                            <i className="fab fa-tiktok"></i> TikTok
                                         </label>
                                         <input
                                             type="url"
                                             value={storeData.socialMedia.tiktok}
-                                            onChange={(e) => handleInputChange('socialMedia', 'tiktok', e.target.value)}
+                                            onChange={(e) => handleInputChange("socialMedia", "tiktok", e.target.value)}
                                             disabled={!isEditing}
                                             placeholder="https://tiktok.com/@tu-usuario"
                                         />
@@ -531,8 +518,8 @@ export const SellerStoreProfile = () => {
                         </div>
                     )}
 
-                    {/* Tab: Configuración */}
-                    {activeTab === 'settings' && (
+                    {/* Settings */}
+                    {activeTab === "settings" && (
                         <div className="tab-panel">
                             <div className="section-card">
                                 <h2>⚙️ Configuración del Negocio</h2>
@@ -542,7 +529,9 @@ export const SellerStoreProfile = () => {
                                             <input
                                                 type="checkbox"
                                                 checked={storeData.settings.acceptsCustomOrders}
-                                                onChange={(e) => handleInputChange('settings', 'acceptsCustomOrders', e.target.checked)}
+                                                onChange={(e) =>
+                                                    handleInputChange("settings", "acceptsCustomOrders", e.target.checked)
+                                                }
                                                 disabled={!isEditing}
                                             />
                                             <span>Acepto pedidos personalizados</span>
@@ -554,7 +543,13 @@ export const SellerStoreProfile = () => {
                                         <input
                                             type="number"
                                             value={storeData.settings.minOrderAmount}
-                                            onChange={(e) => handleInputChange('settings', 'minOrderAmount', parseInt(e.target.value) || 0)}
+                                            onChange={(e) =>
+                                                handleInputChange(
+                                                    "settings",
+                                                    "minOrderAmount",
+                                                    parseInt(e.target.value) || 0
+                                                )
+                                            }
                                             disabled={!isEditing}
                                             placeholder="0"
                                             min="0"
@@ -573,30 +568,29 @@ export const SellerStoreProfile = () => {
                                                     <input
                                                         type="checkbox"
                                                         checked={hours.enabled}
-                                                        onChange={(e) => handleWorkingHoursChange(day, 'enabled', e.target.checked)}
+                                                        onChange={(e) => handleWorkingHoursChange(day, "enabled", e.target.checked)}
                                                         disabled={!isEditing}
                                                     />
                                                     <span>{getDayName(day)}</span>
                                                 </label>
                                             </div>
-                                            {hours.enabled && (
+                                            {hours.enabled ? (
                                                 <div className="time-inputs">
                                                     <input
                                                         type="time"
                                                         value={hours.open}
-                                                        onChange={(e) => handleWorkingHoursChange(day, 'open', e.target.value)}
+                                                        onChange={(e) => handleWorkingHoursChange(day, "open", e.target.value)}
                                                         disabled={!isEditing}
                                                     />
                                                     <span>a</span>
                                                     <input
                                                         type="time"
                                                         value={hours.close}
-                                                        onChange={(e) => handleWorkingHoursChange(day, 'close', e.target.value)}
+                                                        onChange={(e) => handleWorkingHoursChange(day, "close", e.target.value)}
                                                         disabled={!isEditing}
                                                     />
                                                 </div>
-                                            )}
-                                            {!hours.enabled && (
+                                            ) : (
                                                 <span className="closed">Cerrado</span>
                                             )}
                                         </div>
@@ -608,7 +602,7 @@ export const SellerStoreProfile = () => {
                 </div>
             </div>
 
-            {/* Vista Previa */}
+            {/* Vista previa */}
             {!isEditing && (
                 <div className="section-card store-preview">
                     <h2>👁️ Vista Previa del Perfil</h2>
@@ -618,7 +612,7 @@ export const SellerStoreProfile = () => {
                                 <i className="fa fa-store"></i>
                             </div>
                             <div className="store-info">
-                                <h3>{storeData.businessName || 'Nombre de la Tienda'}</h3>
+                                <h3>{storeData.businessName || "Nombre de la Tienda"}</h3>
                                 <p className="store-category">{storeData.businessInfo.category}</p>
                                 <p className="store-description">{storeData.description}</p>
                             </div>
@@ -640,7 +634,10 @@ export const SellerStoreProfile = () => {
                             {storeData.location.address && (
                                 <div className="detail-item">
                                     <i className="fa fa-map-marker-alt"></i>
-                                    <span>{storeData.location.address}, {storeData.location.city}</span>
+                                    <span>
+                                        {storeData.location.address}
+                                        {storeData.location.city ? `, ${storeData.location.city}` : ""}
+                                    </span>
                                 </div>
                             )}
                         </div>
@@ -659,6 +656,11 @@ export const SellerStoreProfile = () => {
                             {storeData.socialMedia.twitter && (
                                 <a href={storeData.socialMedia.twitter} target="_blank" rel="noopener noreferrer">
                                     <i className="fab fa-twitter"></i>
+                                </a>
+                            )}
+                            {storeData.socialMedia.tiktok && (
+                                <a href={storeData.socialMedia.tiktok} target="_blank" rel="noopener noreferrer">
+                                    <i className="fab fa-tiktok"></i>
                                 </a>
                             )}
                         </div>

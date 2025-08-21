@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import '../styles/recover-password.css';
+import { api } from '../api'; // <-- usa tu axios.create ya configurado
 
 export const RecoverPasswordPage = () => {
     const [email, setEmail] = useState('');
@@ -8,19 +9,16 @@ export const RecoverPasswordPage = () => {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError('');
 
-        // Validación básica
         if (!email) {
             setError('Por favor, ingresa tu correo electrónico.');
             setLoading(false);
             return;
         }
-
-        // Validación de formato de email
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
             setError('Por favor, ingresa un correo electrónico válido.');
@@ -28,12 +26,17 @@ export const RecoverPasswordPage = () => {
             return;
         }
 
-        // Simular llamada a API para envío de email
-        setTimeout(() => {
-            // En una implementación real, aquí se enviaría el email
+        try {
+            await api.post('/auth/forgot-password', { email });
             setIsSubmitted(true);
+        } catch (err) {
+            // El backend devuelve 200 aún si el correo no existe.
+            // Si hay error de red/servidor, lo mostramos.
+            const msg = err?.response?.data?.error || 'No se pudo enviar el correo. Intenta de nuevo.';
+            setError(msg);
+        } finally {
             setLoading(false);
-        }, 2000);
+        }
     };
 
     const handleResendEmail = () => {
@@ -50,32 +53,24 @@ export const RecoverPasswordPage = () => {
                         <div className="success-icon">
                             <i className="fa fa-check-circle"></i>
                         </div>
-
                         <h2>Correo Enviado</h2>
-
                         <p className="success-message">
                             Hemos enviado las instrucciones para restablecer tu contraseña a:
                         </p>
-
                         <div className="email-display">
                             <i className="fa fa-envelope"></i>
                             <span>{email}</span>
                         </div>
-
                         <p className="instructions">
                             Revisa tu bandeja de entrada y sigue las instrucciones.
-                            Si no recibes el correo en los próximos minutos, revisa tu carpeta de spam.
+                            Si no recibís el correo en unos minutos, revisá spam.
                         </p>
-
                         <div className="success-actions">
                             <Link to="/login" className="btn-primary">
                                 <i className="fa fa-arrow-left"></i>
                                 Volver al Login
                             </Link>
-                            <button
-                                onClick={handleResendEmail}
-                                className="btn-secondary"
-                            >
+                            <button onClick={handleResendEmail} className="btn-secondary">
                                 <i className="fa fa-redo"></i>
                                 Enviar de nuevo
                             </button>
@@ -95,7 +90,7 @@ export const RecoverPasswordPage = () => {
                     </div>
                     <h2>Recuperar Contraseña</h2>
                     <p className="recover-subtitle">
-                        Ingresa tu correo electrónico y te enviaremos las instrucciones
+                        Ingresá tu correo electrónico y te enviaremos las instrucciones
                         para restablecer tu contraseña.
                     </p>
                 </div>
@@ -125,11 +120,7 @@ export const RecoverPasswordPage = () => {
                         </div>
                     </div>
 
-                    <button
-                        type="submit"
-                        disabled={loading || !email}
-                        className="btn-submit"
-                    >
+                    <button type="submit" disabled={loading || !email} className="btn-submit">
                         {loading ? (
                             <>
                                 <i className="fa fa-spinner fa-spin"></i>
@@ -146,9 +137,7 @@ export const RecoverPasswordPage = () => {
                     <div className="form-footer">
                         <p>
                             ¿Recordaste tu contraseña?
-                            <Link to="/login" className="login-link">
-                                Iniciar Sesión
-                            </Link>
+                            <Link to="/login" className="login-link"> Iniciar Sesión</Link>
                         </p>
                     </div>
                 </form>

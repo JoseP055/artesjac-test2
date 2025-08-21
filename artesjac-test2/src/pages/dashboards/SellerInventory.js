@@ -1,122 +1,130 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../../modules/auth/AuthContext';
-import '../../styles/dashboard.css';
-import '../../styles/inventory.css';
+// src/pages/seller/SellerInventory.jsx
+import React, { useState, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
+
+import "../../styles/dashboard.css";
+import "../../styles/inventory.css";
+import { ProductsAPI } from "../../api/products.service";
+import { resolveImgUrl } from "../../utils/resolveImgUrl";
+import noImage from "../../assets/images/noimage.png"; // ⬅️ Fallback local
+
+// ---- Helpers ----
+const isEmptyLike = (v) => {
+    if (v == null) return true;
+    const s = String(v).trim().toLowerCase();
+    return s === "" || s === "null" || s === "undefined";
+};
+const normalizePath = (s) => String(s || "").replace(/\\/g, "/").trim();
+
+// Devuelve una URL válida o el fallback local
+const resolveUrlOrFallback = (maybeUrl) => {
+    try {
+        if (isEmptyLike(maybeUrl)) return noImage;
+        const raw = normalizePath(maybeUrl);
+        if (raw.startsWith("data:")) return raw; // soporta base64
+        const url = resolveImgUrl(raw);
+        return isEmptyLike(url) ? noImage : url;
+    } catch {
+        return noImage;
+    }
+};
+
+// ---- Componente Img con fallback robusto ----
+const ImageWithFallback = ({ src, alt, className }) => {
+    const [imgSrc, setImgSrc] = useState(resolveUrlOrFallback(src));
+    return (
+        <img
+            src={imgSrc}
+            alt={alt}
+            className={className}
+            loading="lazy"
+            decoding="async"
+            referrerPolicy="no-referrer"
+            crossOrigin="anonymous"
+            onError={() => {
+                if (imgSrc !== noImage) setImgSrc(noImage); // evita loop
+            }}
+        />
+    );
+};
 
 export const SellerInventory = () => {
-    const { user } = useAuth();
+    
+
     const [products, setProducts] = useState([]);
     const [filteredProducts, setFilteredProducts] = useState([]);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [selectedCategory, setSelectedCategory] = useState('all');
-    const [sortBy, setSortBy] = useState('name');
+    const [searchTerm, setSearchTerm] = useState("");
+    const [selectedCategory, setSelectedCategory] = useState("all");
+    const [sortBy, setSortBy] = useState("name");
     const [isLoading, setIsLoading] = useState(true);
+
     const [showModal, setShowModal] = useState(false);
     const [editingProduct, setEditingProduct] = useState(null);
     const [formData, setFormData] = useState({
-        id: '',
-        name: '',
-        description: '',
-        price: '',
-        stock: '',
-        category: '',
-        status: 'active',
-        imageUrl: ''
+        id: "",
+        name: "",
+        description: "",
+        price: "",
+        stock: "",
+        category: "",
+        status: "active",
+        imageUrl: "",
     });
 
     const categories = [
-        { value: 'all', label: 'Todas las categorías' },
-        { value: 'jewelery', label: 'Joyería' },
-        { value: 'bags', label: 'Bolsos y Accesorios' },
-        { value: 'decoration', label: 'Decoración' },
-        { value: 'art', label: 'Arte' },
-        { value: 'ceramics', label: 'Cerámica' },
-        { value: 'textiles', label: 'Textiles' }
+        { value: "all", label: "Todas las categorías" },
+        { value: "jewelery", label: "Joyería" },
+        { value: "bags", label: "Bolsos y Accesorios" },
+        { value: "decoration", label: "Decoración" },
+        { value: "art", label: "Arte" },
+        { value: "ceramics", label: "Cerámica" },
+        { value: "textiles", label: "Textiles" },
     ];
 
-    const loadProducts = useCallback(() => {
+    // 🔧 Cargar MIS productos (endpoint correcto)
+    const loadProducts = useCallback(async () => {
         setIsLoading(true);
-        setTimeout(() => {
-            // Simular carga de productos desde localStorage o API
-            const savedProducts = localStorage.getItem(`products_${user?.id}`);
-            if (savedProducts) {
-                try {
-                    const parsedProducts = JSON.parse(savedProducts);
-                    setProducts(parsedProducts);
-                } catch (error) {
-                    console.error('Error al cargar productos:', error);
-                    setProducts(getDefaultProducts());
-                }
-            } else {
-                setProducts(getDefaultProducts());
-            }
-            setIsLoading(false);
-        }, 500);
-    }, [user?.id]);
+        try {
+            const res = await ProductsAPI.mine({ page: 1, limit: 100 });
+            const list = res?.data?.data || [];
 
-    const getDefaultProducts = () => [
-        {
-            id: 'prod-001',
-            name: 'Collar artesanal de semillas',
-            description: 'Hermoso collar hecho a mano con semillas naturales locales',
-            price: 12000,
-            stock: 15,
-            category: 'jewelery',
-            status: 'active',
-            imageUrl: '',
-            createdAt: '2024-01-01',
-            lastUpdated: new Date().toISOString()
-        },
-        {
-            id: 'prod-002',
-            name: 'Bolso tejido a mano',
-            description: 'Bolso tradicional tejido con fibras naturales',
-            price: 18500,
-            stock: 8,
-            category: 'bags',
-            status: 'active',
-            imageUrl: '',
-            createdAt: '2024-01-02',
-            lastUpdated: new Date().toISOString()
-        },
-        {
-            id: 'prod-003',
-            name: 'Vasija cerámica decorativa',
-            description: 'Vasija de cerámica pintada a mano con diseños tradicionales',
-            price: 25000,
-            stock: 5,
-            category: 'ceramics',
-            status: 'active',
-            imageUrl: '',
-            createdAt: '2024-01-03',
-            lastUpdated: new Date().toISOString()
-        },
-        {
-            id: 'prod-004',
-            name: 'Cuadro paisaje artesanal',
-            description: 'Pintura al óleo de paisaje costarricense',
-            price: 45000,
-            stock: 3,
-            category: 'art',
-            status: 'active',
-            imageUrl: '',
-            createdAt: '2024-01-04',
-            lastUpdated: new Date().toISOString()
-        },
-        {
-            id: 'prod-005',
-            name: 'Aretes de madera tallada',
-            description: 'Aretes únicos tallados en madera de guanacaste',
-            price: 8500,
-            stock: 0,
-            category: 'jewelery',
-            status: 'out_of_stock',
-            imageUrl: '',
-            createdAt: '2024-01-05',
-            lastUpdated: new Date().toISOString()
+            // Mapear del backend al estado de la UI
+            const mapped = list.map((p) => {
+                const uiStatus =
+                    (Number(p.stock) || 0) === 0
+                        ? "out_of_stock"
+                        : p.status === "draft"
+                            ? "inactive"
+                            : "active";
+
+                // primera imagen válida (array o string)
+                const rawFirst = Array.isArray(p.images)
+                    ? p.images.find((x) => !isEmptyLike(x))
+                    : p.images;
+                const img = isEmptyLike(rawFirst) ? "" : normalizePath(rawFirst);
+
+                return {
+                    id: p._id || p.id,
+                    name: p.title,
+                    description: p.description || "",
+                    price: Number(p.price) || 0,
+                    stock: Number(p.stock) || 0,
+                    category: p.category || "",
+                    status: uiStatus,
+                    imageUrl: img, // se resuelve en el <img/>
+                    createdAt: p.createdAt,
+                    lastUpdated: p.updatedAt || p.createdAt,
+                };
+            });
+
+            setProducts(mapped);
+        } catch (err) {
+            console.error(err);
+            alert(err?.response?.data?.error || "Error cargando productos");
+        } finally {
+            setIsLoading(false);
         }
-    ];
+    }, []);
 
     useEffect(() => {
         loadProducts();
@@ -125,29 +133,28 @@ export const SellerInventory = () => {
     useEffect(() => {
         let filtered = [...products];
 
-        // Filtrar por búsqueda
         if (searchTerm) {
-            filtered = filtered.filter(product =>
-                product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                product.description.toLowerCase().includes(searchTerm.toLowerCase())
+            const q = searchTerm.toLowerCase();
+            filtered = filtered.filter(
+                (product) =>
+                    product.name.toLowerCase().includes(q) ||
+                    (product.description || "").toLowerCase().includes(q)
             );
         }
 
-        // Filtrar por categoría
-        if (selectedCategory !== 'all') {
-            filtered = filtered.filter(product => product.category === selectedCategory);
+        if (selectedCategory !== "all") {
+            filtered = filtered.filter((product) => product.category === selectedCategory);
         }
 
-        // Ordenar
         filtered.sort((a, b) => {
             switch (sortBy) {
-                case 'name':
+                case "name":
                     return a.name.localeCompare(b.name);
-                case 'price':
+                case "price":
                     return a.price - b.price;
-                case 'stock':
+                case "stock":
                     return b.stock - a.stock;
-                case 'date':
+                case "date":
                     return new Date(b.lastUpdated) - new Date(a.lastUpdated);
                 default:
                     return 0;
@@ -159,35 +166,48 @@ export const SellerInventory = () => {
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({
+        setFormData((prev) => ({
             ...prev,
-            [name]: value
+            [name]: value,
         }));
     };
 
-    const handleSaveProduct = () => {
-        const productData = {
-            ...formData,
-            id: editingProduct ? editingProduct.id : `prod-${Date.now()}`,
-            price: parseInt(formData.price),
-            stock: parseInt(formData.stock),
-            lastUpdated: new Date().toISOString(),
-            createdAt: editingProduct ? editingProduct.createdAt : new Date().toISOString()
-        };
+    // Guardar (crear/actualizar)
+    const handleSaveProduct = async () => {
+        // Normalizar estado UI -> schema
+        let status = formData.status || "active";
+        let stock = Number(formData.stock || 0);
 
-        let updatedProducts;
-        if (editingProduct) {
-            updatedProducts = products.map(p => p.id === productData.id ? productData : p);
-        } else {
-            updatedProducts = [...products, productData];
+        if (status === "inactive") status = "draft"; // UI "Inactivo" => schema "draft"
+        if (status === "out_of_stock") {
+            status = "active"; // UI "Sin stock" => schema "active" + stock=0
+            stock = 0;
         }
 
-        setProducts(updatedProducts);
-        localStorage.setItem(`products_${user?.id}`, JSON.stringify(updatedProducts));
+        const payload = {
+            title: formData.name,
+            description: formData.description || "",
+            price: Number(formData.price || 0),
+            stock,
+            category: formData.category || "",
+            status, // "draft" | "active"
+            images: !isEmptyLike(formData.imageUrl) ? [normalizePath(formData.imageUrl)] : [],
+        };
 
-        setShowModal(false);
-        setEditingProduct(null);
-        resetForm();
+        try {
+            if (editingProduct) {
+                await ProductsAPI.update(editingProduct.id, payload);
+            } else {
+                await ProductsAPI.create(payload);
+            }
+            await loadProducts();
+            setShowModal(false);
+            setEditingProduct(null);
+            resetForm();
+        } catch (err) {
+            console.error(err);
+            alert(err?.response?.data?.error || "Error guardando producto");
+        }
     };
 
     const handleEditProduct = (product) => {
@@ -196,33 +216,36 @@ export const SellerInventory = () => {
             id: product.id,
             name: product.name,
             description: product.description,
-            price: product.price.toString(),
-            stock: product.stock.toString(),
+            price: String(product.price ?? ""),
+            stock: String(product.stock ?? ""),
             category: product.category,
-            status: product.status,
-            imageUrl: product.imageUrl || ''
+            status: product.status, // "active" | "inactive" | "out_of_stock"
+            imageUrl: product.imageUrl || "",
         });
         setShowModal(true);
     };
 
-    const handleDeleteProduct = (productId) => {
-        if (window.confirm('¿Estás seguro de que deseas eliminar este producto?')) {
-            const updatedProducts = products.filter(p => p.id !== productId);
-            setProducts(updatedProducts);
-            localStorage.setItem(`products_${user?.id}`, JSON.stringify(updatedProducts));
+    const handleDeleteProduct = async (productId) => {
+        if (!window.confirm("¿Eliminar este producto?")) return;
+        try {
+            await ProductsAPI.remove(productId);
+            await loadProducts();
+        } catch (err) {
+            console.error(err);
+            alert(err?.response?.data?.error || "Error eliminando producto");
         }
     };
 
     const resetForm = () => {
         setFormData({
-            id: '',
-            name: '',
-            description: '',
-            price: '',
-            stock: '',
-            category: '',
-            status: 'active',
-            imageUrl: ''
+            id: "",
+            name: "",
+            description: "",
+            price: "",
+            stock: "",
+            category: "",
+            status: "active",
+            imageUrl: "",
         });
     };
 
@@ -234,24 +257,32 @@ export const SellerInventory = () => {
 
     const getStatusColor = (status) => {
         switch (status) {
-            case 'active': return '#4caf50';
-            case 'inactive': return '#9e9e9e';
-            case 'out_of_stock': return '#f44336';
-            default: return '#666';
+            case "active":
+                return "#4caf50";
+            case "inactive":
+                return "#9e9e9e";
+            case "out_of_stock":
+                return "#f44336";
+            default:
+                return "#666";
         }
     };
 
     const getStatusText = (status) => {
         switch (status) {
-            case 'active': return 'Activo';
-            case 'inactive': return 'Inactivo';
-            case 'out_of_stock': return 'Sin Stock';
-            default: return status;
+            case "active":
+                return "Activo";
+            case "inactive":
+                return "Inactivo";
+            case "out_of_stock":
+                return "Sin Stock";
+            default:
+                return status;
         }
     };
 
     const getCategoryLabel = (category) => {
-        const cat = categories.find(c => c.value === category);
+        const cat = categories.find((c) => c.value === category);
         return cat ? cat.label : category;
     };
 
@@ -304,7 +335,7 @@ export const SellerInventory = () => {
                         onChange={(e) => setSelectedCategory(e.target.value)}
                         className="filter-select"
                     >
-                        {categories.map(cat => (
+                        {categories.map((cat) => (
                             <option key={cat.value} value={cat.value}>
                                 {cat.label}
                             </option>
@@ -324,7 +355,7 @@ export const SellerInventory = () => {
                 </div>
             </div>
 
-            {/* Estadísticas del Inventario */}
+            {/* Estadísticas */}
             <div className="inventory-stats">
                 <div className="stat-card">
                     <div className="stat-icon">
@@ -341,7 +372,7 @@ export const SellerInventory = () => {
                         <i className="fa fa-check-circle"></i>
                     </div>
                     <div className="stat-content">
-                        <h3>{products.filter(p => p.status === 'active').length}</h3>
+                        <h3>{products.filter((p) => p.status === "active").length}</h3>
                         <p>Productos Activos</p>
                     </div>
                 </div>
@@ -351,7 +382,7 @@ export const SellerInventory = () => {
                         <i className="fa fa-exclamation-triangle"></i>
                     </div>
                     <div className="stat-content">
-                        <h3>{products.filter(p => p.stock === 0).length}</h3>
+                        <h3>{products.filter((p) => p.stock === 0).length}</h3>
                         <p>Sin Stock</p>
                     </div>
                 </div>
@@ -361,13 +392,18 @@ export const SellerInventory = () => {
                         <i className="fa fa-dollar-sign"></i>
                     </div>
                     <div className="stat-content">
-                        <h3>₡{products.reduce((total, p) => total + (p.price * p.stock), 0).toLocaleString()}</h3>
+                        <h3>
+                            ₡
+                            {products
+                                .reduce((total, p) => total + p.price * p.stock, 0)
+                                .toLocaleString()}
+                        </h3>
                         <p>Valor Inventario</p>
                     </div>
                 </div>
             </div>
 
-            {/* Lista de Productos */}
+            {/* Tabla de Productos */}
             <div className="section-card products-table-card">
                 <div className="section-header">
                     <h2>📋 Lista de Productos</h2>
@@ -385,15 +421,20 @@ export const SellerInventory = () => {
                             <div className="header-cell">Acciones</div>
                         </div>
 
-                        {filteredProducts.map(product => (
+                        {filteredProducts.map((product) => (
                             <div key={product.id} className="table-row product-row">
                                 <div className="table-cell product-info">
-                                    <div className="product-image-placeholder">
-                                        <i className="fa fa-image"></i>
+                                    <div className="product-image">
+                                        <ImageWithFallback
+                                            src={product.imageUrl}
+                                            alt={product.name}
+                                            className="product-thumb"
+                                        />
                                     </div>
+
                                     <div className="product-details">
                                         <h4>{product.name}</h4>
-                                        <p>{product.description.substring(0, 60)}...</p>
+                                        <p>{(product.description || "").substring(0, 60)}...</p>
                                     </div>
                                 </div>
 
@@ -408,7 +449,14 @@ export const SellerInventory = () => {
                                 </div>
 
                                 <div className="table-cell stock">
-                                    <span className={`stock-badge ${product.stock === 0 ? 'no-stock' : product.stock <= 5 ? 'low-stock' : 'good-stock'}`}>
+                                    <span
+                                        className={`stock-badge ${product.stock === 0
+                                                ? "no-stock"
+                                                : product.stock <= 5
+                                                    ? "low-stock"
+                                                    : "good-stock"
+                                            }`}
+                                    >
                                         {product.stock} unidades
                                     </span>
                                 </div>
@@ -452,12 +500,12 @@ export const SellerInventory = () => {
                 </div>
             </div>
 
-            {/* Modal para Agregar/Editar Producto */}
+            {/* Modal Agregar/Editar */}
             {showModal && (
                 <div className="modal-overlay" onClick={() => setShowModal(false)}>
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h2>{editingProduct ? 'Editar Producto' : 'Agregar Nuevo Producto'}</h2>
+                            <h2>{editingProduct ? "Editar Producto" : "Agregar Nuevo Producto"}</h2>
                             <button onClick={() => setShowModal(false)} className="modal-close">
                                 <i className="fa fa-times"></i>
                             </button>
@@ -486,7 +534,7 @@ export const SellerInventory = () => {
                                         required
                                     >
                                         <option value="">Selecciona una categoría</option>
-                                        {categories.slice(1).map(cat => (
+                                        {categories.slice(1).map((cat) => (
                                             <option key={cat.value} value={cat.value}>
                                                 {cat.label}
                                             </option>
@@ -552,7 +600,7 @@ export const SellerInventory = () => {
                                         name="imageUrl"
                                         value={formData.imageUrl}
                                         onChange={handleInputChange}
-                                        placeholder="https://ejemplo.com/imagen.jpg"
+                                        placeholder="https://ejemplo.com/imagen.jpg o /uploads/archivo.jpg"
                                     />
                                 </div>
                             </div>
@@ -564,7 +612,7 @@ export const SellerInventory = () => {
                             </button>
                             <button onClick={handleSaveProduct} className="btn-save">
                                 <i className="fa fa-save"></i>
-                                {editingProduct ? 'Actualizar' : 'Guardar'} Producto
+                                {editingProduct ? "Actualizar" : "Guardar"} Producto
                             </button>
                         </div>
                     </div>
@@ -573,3 +621,5 @@ export const SellerInventory = () => {
         </div>
     );
 };
+
+export default SellerInventory;

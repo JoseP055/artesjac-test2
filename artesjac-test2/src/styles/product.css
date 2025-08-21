@@ -113,7 +113,7 @@
 }
 
 .product-category {
-    color: #ff5722;
+    color: #ffffff;
     font-size: 0.9rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -743,4 +743,32 @@
         margin: 1rem;
         max-width: calc(100vw - 2rem);
     }
+}
+
+.product-image-sim {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    object-fit: contain !important;
+    background: transparent !important;
+    border: none !important;
+    /* quitar borde de debug */
+}
+
+.product-image-main {
+    min-height: 260px !important;
+    /* asegura altura visible */
+    aspect-ratio: 1/1 !important;
+    /* mantiene cuadro cuadrado */
+    display: flex !important;
+    /* centra la imagen */
+    align-items: center !important;
+    justify-content: center !important;
+    background: #1a1a1a !important;
+    /* tu tema */
+    border: 1px solid #333 !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
 }
