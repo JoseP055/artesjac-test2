@@ -1,3 +1,4 @@
+// src/pages/seller/SellerInventory.jsx
 import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../modules/auth/AuthContext";
@@ -5,6 +6,47 @@ import "../../styles/dashboard.css";
 import "../../styles/inventory.css";
 import { ProductsAPI } from "../../api/products.service";
 import { resolveImgUrl } from "../../utils/resolveImgUrl";
+import noImage from "../../assets/images/noimage.png"; // ⬅️ Fallback local
+
+// ---- Helpers para URLs/valores vacíos ----
+const isEmptyLike = (v) => {
+    if (v == null) return true;
+    const s = String(v).trim().toLowerCase();
+    return s === "" || s === "null" || s === "undefined";
+};
+const normalizePath = (s) => String(s || "").replace(/\\/g, "/").trim();
+
+// Devuelve una URL válida o el fallback local
+const resolveUrlOrFallback = (maybeUrl) => {
+    try {
+        if (isEmptyLike(maybeUrl)) return noImage;
+        const raw = normalizePath(maybeUrl);
+        if (raw.startsWith("data:")) return raw; // soporta base64
+        const url = resolveImgUrl(raw);
+        return isEmptyLike(url) ? noImage : url;
+    } catch {
+        return noImage;
+    }
+};
+
+// ---- Componente Img con fallback robusto ----
+const ImageWithFallback = ({ src, alt, className }) => {
+    const [imgSrc, setImgSrc] = useState(resolveUrlOrFallback(src));
+    return (
+        <img
+            src={imgSrc}
+            alt={alt}
+            className={className}
+            loading="lazy"
+            decoding="async"
+            referrerPolicy="no-referrer"
+            crossOrigin="anonymous"
+            onError={() => {
+                if (imgSrc !== noImage) setImgSrc(noImage); // evita loop
+            }}
+        />
+    );
+};
 
 export const SellerInventory = () => {
     const { user } = useAuth();
@@ -44,15 +86,20 @@ export const SellerInventory = () => {
         try {
             const { data } = await ProductsAPI.list({ page: 1, limit: 100, sort: "new" });
 
-            // Mapear del backend al estado de la UI:
-            const mapped = data.map((p) => {
-                // UI: si stock === 0 => 'out_of_stock'; si schema trae 'draft' => 'inactive'
+            // Mapear del backend al estado de la UI
+            const mapped = (Array.isArray(data) ? data : data?.data || []).map((p) => {
                 const uiStatus =
                     (Number(p.stock) || 0) === 0
                         ? "out_of_stock"
                         : p.status === "draft"
                             ? "inactive"
                             : "active";
+
+                // Toma primera imagen válida del array o del campo simple
+                const rawFirst = Array.isArray(p.images)
+                    ? p.images.find((x) => !isEmptyLike(x))
+                    : p.images;
+                const img = isEmptyLike(rawFirst) ? "" : normalizePath(rawFirst);
 
                 return {
                     id: p._id,
@@ -62,7 +109,7 @@ export const SellerInventory = () => {
                     stock: Number(p.stock) || 0,
                     category: p.category || "",
                     status: uiStatus,
-                    imageUrl: (p.images && p.images[0]) || "",
+                    imageUrl: img, // ⬅️ guardamos "crudo", lo resolvemos en el <img>
                     createdAt: p.createdAt,
                     lastUpdated: p.updatedAt || p.createdAt,
                 };
@@ -89,7 +136,7 @@ export const SellerInventory = () => {
             filtered = filtered.filter(
                 (product) =>
                     product.name.toLowerCase().includes(q) ||
-                    product.description.toLowerCase().includes(q)
+                    (product.description || "").toLowerCase().includes(q)
             );
         }
 
@@ -128,9 +175,9 @@ export const SellerInventory = () => {
         let status = formData.status || "active";
         let stock = Number(formData.stock || 0);
 
-        if (status === "inactive") status = "draft";      // UI "Inactivo" => schema "draft"
-        if (status === "out_of_stock") {                  // UI "Sin stock" => schema "active" + stock=0
-            status = "active";
+        if (status === "inactive") status = "draft"; // UI "Inactivo" => schema "draft"
+        if (status === "out_of_stock") {
+            status = "active"; // UI "Sin stock" => schema "active" + stock=0
             stock = 0;
         }
 
@@ -141,7 +188,7 @@ export const SellerInventory = () => {
             stock,
             category: formData.category || "",
             status, // "draft" | "active"
-            images: formData.imageUrl ? [formData.imageUrl] : [],
+            images: !isEmptyLike(formData.imageUrl) ? [normalizePath(formData.imageUrl)] : [],
         };
 
         try {
@@ -166,10 +213,10 @@ export const SellerInventory = () => {
             id: product.id,
             name: product.name,
             description: product.description,
-            price: product.price.toString(),
-            stock: product.stock.toString(),
+            price: String(product.price ?? ""),
+            stock: String(product.stock ?? ""),
             category: product.category,
-            status: product.status, // UI values: "active" | "inactive" | "out_of_stock"
+            status: product.status, // "active" | "inactive" | "out_of_stock"
             imageUrl: product.imageUrl || "",
         });
         setShowModal(true);
@@ -375,21 +422,12 @@ export const SellerInventory = () => {
                             <div key={product.id} className="table-row product-row">
                                 <div className="table-cell product-info">
                                     <div className="product-image">
-                                        {product.imageUrl ? (
-                                            <img
-                                                src={resolveImgUrl(product.imageUrl)}
-                                                alt={product.name}
-                                                className="product-thumb"
-                                                onError={(e) => {
-                                                    e.currentTarget.onerror = null;
-                                                    e.currentTarget.src = "/fallback-product.png";
-                                                }}
-                                            />
-                                        ) : (
-                                            <div className="product-image-placeholder">
-                                                <i className="fa fa-image"></i>
-                                            </div>
-                                        )}
+                                        {/* ⬇️ Imagen SIEMPRE con fallback */}
+                                        <ImageWithFallback
+                                            src={product.imageUrl}
+                                            alt={product.name}
+                                            className="product-thumb"
+                                        />
                                     </div>
 
                                     <div className="product-details">

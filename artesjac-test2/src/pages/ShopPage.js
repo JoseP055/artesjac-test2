@@ -4,12 +4,16 @@ import { Link } from 'react-router-dom';
 import '../styles/shop.css';
 import { ShopAPI } from '../api/shop.service';
 import { resolveImgUrl } from "../utils/resolveImgUrl";
+import noImage from "../assets/images/noimage.png"; // ⬅️ Fallback local
 
-const resolveFirstImage = (p) => {
-    const first = Array.isArray(p.images) ? p.images.find(Boolean) : p.images;
-    if (!first) return "/img/product-placeholder.png"; // pon un placeholder en /public/img/
-    return resolveImgUrl(String(first).replace(/\\/g, "/"));
+// Devuelve la primera imagen válida o null
+const firstImg = (p) => {
+    const candidate = Array.isArray(p?.images) && p.images.length
+        ? p.images.find(Boolean)
+        : p?.image || p?.img || p?.thumbnail || null;
+    return candidate ? String(candidate).replace(/\\/g, "/") : null;
 };
+
 
 // Mock de respaldo si la API falla (conserva TUS textos y formato)
 const mockProducts = [
@@ -127,11 +131,9 @@ export const ShopPage = () => {
     const getTotalCartItems = () =>
         cartItems.reduce((total, item) => total + item.quantity, 0);
 
-    // ⬇️ Categorías con TUS íconos, pero contadas desde lo que trae la API
+    // Categorías con conteos desde lo que trae la API
     const categories = useMemo(() => {
-        const counts = {
-            textil: 0, joyeria: 0, pintura: 0, ceramica: 0, escultura: 0,
-        };
+        const counts = { textil: 0, joyeria: 0, pintura: 0, ceramica: 0, escultura: 0 };
         products.forEach(p => {
             if (counts.hasOwnProperty(p.category)) counts[p.category] += 1;
         });
@@ -144,6 +146,18 @@ export const ShopPage = () => {
             { id: 'escultura', name: 'Escultura', count: counts.escultura, icon: '🗿' },
         ];
     }, [products]);
+
+    // Helper: resuelve URL final o usa noImage
+    const getImgSrc = (product) => {
+        const candidate = firstImg(product);
+        if (!candidate) return noImage;
+        try {
+            const url = resolveImgUrl(candidate);
+            return url || noImage;
+        } catch {
+            return noImage;
+        }
+    };
 
     return (
         <main className="shop-container">
@@ -218,11 +232,7 @@ export const ShopPage = () => {
                             <div key={product.id} className="product-card">
                                 <div className="product-media">
                                     <img
-                                        src={resolveImgUrl(
-                                            Array.isArray(product.images) && product.images.length
-                                                ? product.images[0]
-                                                : product.image || product.img || product.thumbnail || ""
-                                        )}
+                                        src={getImgSrc(product)}                 // ⬅️ usa backend o fallback local
                                         alt={`Imagen de ${product.name}`}
                                         className="product-thumb"
                                         loading="lazy"
@@ -231,8 +241,8 @@ export const ShopPage = () => {
                                         crossOrigin="anonymous"
                                         onError={(e) => {
                                             if (e.currentTarget.dataset.fallback === "1") return;
-                                            e.currentTarget.dataset.fallback = "1";
-                                            e.currentTarget.src = "/img/product-placeholder.png"; // pon uno en /public/img/
+                                            e.currentTarget.dataset.fallback = "1"; // evita loop
+                                            e.currentTarget.src = noImage;          // ⬅️ fallback definitivo
                                         }}
                                     />
                                 </div>
