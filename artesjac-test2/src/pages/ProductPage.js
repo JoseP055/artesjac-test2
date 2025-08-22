@@ -1,16 +1,16 @@
 // src/pages/ProductPage.js
 import React, { useState, useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../modules/auth/AuthContext";
 import { ShopAPI } from "../api/shop.service";
 import { ReviewsAPI } from "../api/reviews.service";
 import { resolveImgUrl } from "../utils/resolveImgUrl";
 import noImage from "../assets/images/noimage.png";
 import "../styles/product.css";
+import { CartAPI } from "../api/cart.service";
 
 // Formateo de colones CR
-const fmtCRC = (n) =>
-    typeof n === "number" ? `₡${n.toLocaleString("es-CR")}` : n;
+const fmtCRC = (n) => (typeof n === "number" ? `₡${n.toLocaleString("es-CR")}` : n);
 
 // Traducción simple de categorías (si en DB están en inglés)
 const catLabel = (c) => {
@@ -41,9 +41,9 @@ export const ProductPage = () => {
     const slugOrId = params.slug || params.id;
 
     const navigate = useNavigate();
+    const routerLocation = useLocation(); // ✅ usar routerLocation, no el global "location"
     const { user, token } = useAuth() || {};
-    const authToken =
-        token || localStorage.getItem("token") || localStorage.getItem("authToken");
+    const authToken = token || localStorage.getItem("token") || localStorage.getItem("authToken");
 
     const [product, setProduct] = useState(null);
     const [sellerInfo, setSellerInfo] = useState(null);
@@ -51,14 +51,14 @@ export const ProductPage = () => {
     const [quantity, setQuantity] = useState(1);
     const [addedToCart, setAddedToCart] = useState(false);
 
-    // --- Reviews del PRODUCTO (mismo UI) ---
+    // --- Reviews del PRODUCTO ---
     const [productReviews, setProductReviews] = useState([]);
     const [averageRating, setAverageRating] = useState(0);
     const [userRating, setUserRating] = useState(0);
     const [reviewComment, setReviewComment] = useState("");
     const [showReviewForm, setShowReviewForm] = useState(false);
 
-    // --- Reviews de la TIENDA (mismo estilo de sección/cards/modales) ---
+    // --- Reviews de la TIENDA ---
     const [storeReviews, setStoreReviews] = useState([]);
     const [storeAvg, setStoreAvg] = useState(0);
     const [storeUserRating, setStoreUserRating] = useState(0);
@@ -91,8 +91,7 @@ export const ProductPage = () => {
 
             // Vendedor
             if (detail.vendorId) {
-                const vendorId =
-                    detail.vendorId._id || detail.vendorId.id || detail.vendorId;
+                const vendorId = detail.vendorId._id || detail.vendorId.id || detail.vendorId;
                 setSellerInfo({
                     id: vendorId,
                     businessName: detail.vendorId.companyName || detail.vendorId.name,
@@ -107,24 +106,15 @@ export const ProductPage = () => {
             // PRODUCT REVIEWS (DB)
             const pid = detail._id || detail.id;
             if (pid) {
-                const resReviews = await ReviewsAPI.listProduct(pid, {
-                    page: 1,
-                    limit: 50,
-                });
+                const resReviews = await ReviewsAPI.listProduct(pid, { page: 1, limit: 50 });
                 const list = resReviews?.data?.data || [];
                 setProductReviews(list);
 
-                const avg =
-                    list.reduce((acc, rv) => acc + (rv.rating || 0), 0) /
-                    (list.length || 1);
+                const avg = list.reduce((acc, rv) => acc + (rv.rating || 0), 0) / (list.length || 1);
                 setAverageRating(list.length ? avg : 0);
 
                 // Si el usuario ya reseñó este producto, precarga para editar
-                const mine =
-                    user &&
-                    list.find(
-                        (r) => String(r.userId?._id || r.userId) === String(user.id)
-                    );
+                const mine = user && list.find((r) => String(r.userId?._id || r.userId) === String(user.id));
                 if (mine) {
                     setUserRating(mine.rating);
                     setReviewComment(mine.comment || "");
@@ -136,22 +126,16 @@ export const ProductPage = () => {
 
             // STORE REVIEWS (DB)
             const vid =
-                detail.vendorId &&
-                (detail.vendorId._id || detail.vendorId.id || detail.vendorId);
+                detail.vendorId && (detail.vendorId._id || detail.vendorId.id || detail.vendorId);
             if (vid && isObjectId(vid)) {
                 const r2 = await ReviewsAPI.listStore(vid, { page: 1, limit: 50 });
                 const list2 = r2?.data?.data || [];
                 setStoreReviews(list2);
-                const avg2 =
-                    list2.reduce((a, b) => a + (b.rating || 0), 0) /
-                    (list2.length || 1);
+                const avg2 = list2.reduce((a, b) => a + (b.rating || 0), 0) / (list2.length || 1);
                 setStoreAvg(list2.length ? avg2 : 0);
 
                 const mine2 =
-                    user &&
-                    list2.find(
-                        (r) => String(r.userId?._id || r.userId) === String(user.id)
-                    );
+                    user && list2.find((r) => String(r.userId?._id || r.userId) === String(user.id));
                 if (mine2) {
                     setStoreUserRating(mine2.rating);
                     setStoreReviewComment(mine2.comment || "");
@@ -171,83 +155,50 @@ export const ProductPage = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [slugOrId]);
 
-    // ✅ URL de imagen robusta con fallbacks (dentro del componente)
+    // ✅ URL de imagen robusta con fallbacks
     const imgSrc = React.useMemo(() => {
         if (!product) return noImage;
-
-        // 1) Tomamos la primera imagen disponible
         const raw =
             Array.isArray(product?.images) && product.images.length
                 ? product.images.find(Boolean)
                 : product?.image || product?.img || product?.thumbnail || null;
-
         if (!raw) return noImage;
-
-        // 2) Normalizamos slashes
         const normalized = String(raw).replace(/\\/g, "/");
-
         try {
-            // 3) Resolver URL (puede devolver undefined si no aplica)
             const resolved = resolveImgUrl(normalized);
-
-            // 4) Fallbacks en orden: resolved || raw || noImage
             return resolved || normalized || noImage;
         } catch {
-            // 5) Si resolve tira error, igual probamos con la cruda
             return normalized || noImage;
         }
     }, [product]);
 
-    // Agregar al carrito (igual)
-    const handleAddToCart = () => {
-        if (!product) return;
+    // === Agregar al carrito (server-first) ===
+   const handleAddToCart = async () => {
+  if (!product) return;
 
-        try {
-            const savedCart = localStorage.getItem("artesjac-cart");
-            let cart = savedCart ? JSON.parse(savedCart) : [];
+  const id = product._id || product.id || null;
+  const ref = product.slug || product.id || id;
 
-            const cartId = product._id || product.id;
-            const existing = cart.find((it) => it.id === cartId);
-
-            const img = firstImg(product);
-
-            if (existing) {
-                cart = cart.map((it) =>
-                    it.id === cartId ? { ...it, quantity: (it.quantity || 1) + quantity } : it
-                );
-            } else {
-                cart.push({
-                    id: cartId, // compatibilidad con lógicas previas
-                    productId: cartId,
-                    slug: product.slug,
-                    name: product.title, // compatibilidad con UIs que esperan "name"
-                    title: product.title,
-                    price: product.price,
-                    quantity,
-                    image: img,
-                    category: product.category,
-                    stock: product.stock,
-                });
-            }
-
-            localStorage.setItem("artesjac-cart", JSON.stringify(cart));
-            setAddedToCart(true);
-            setTimeout(() => setAddedToCart(false), 2500);
-        } catch (error) {
-            console.error("Error al agregar al carrito:", error);
-        }
-    };
+  try {
+    await CartAPI.add({ productId: id, productRef: ref, quantity });
+    setAddedToCart(true);
+    setTimeout(() => setAddedToCart(false), 2000);
+  } catch (e) {
+    const status = e?.response?.status;
+    if (status === 401 || status === 403) {
+      const next = encodeURIComponent(`${routerLocation.pathname}${routerLocation.search || ""}`);
+      return navigate(`/login?next=${next}`);
+    }
+    alert(e?.response?.data?.error || "No se pudo guardar en tu carrito");
+  }
+};
 
     // === Enviar/actualizar RESEÑA de PRODUCTO (1 por comprador) ===
     const handleSubmitReview = async () => {
-        if (!user || user.userType !== "buyer" || !product || userRating === 0)
-            return;
+        if (!user || user.userType !== "buyer" || !product || userRating === 0) return;
         try {
             const pid = product._id || product.id;
-            await ReviewsAPI.upsertProduct(
-                { productId: pid, rating: userRating, comment: reviewComment },
-                authToken
-            );
+            await ReviewsAPI.upsertProduct({ productId: pid, rating: userRating, comment: reviewComment }, authToken);
             await load();
             setShowReviewForm(false);
             alert("¡Reseña del producto guardada!");
@@ -259,20 +210,10 @@ export const ProductPage = () => {
 
     // === Enviar/actualizar RESEÑA de TIENDA (1 por comprador) ===
     const handleSubmitStoreReview = async () => {
-        if (
-            !user ||
-            user.userType !== "buyer" ||
-            !sellerInfo ||
-            storeUserRating === 0
-        )
-            return;
+        if (!user || user.userType !== "buyer" || !sellerInfo || storeUserRating === 0) return;
         try {
             await ReviewsAPI.upsertStore(
-                {
-                    vendorId: sellerInfo.id,
-                    rating: storeUserRating,
-                    comment: storeReviewComment,
-                },
+                { vendorId: sellerInfo.id, rating: storeUserRating, comment: storeReviewComment },
                 authToken
             );
             await load();
@@ -358,17 +299,11 @@ export const ProductPage = () => {
                         <div className="quantity-section">
                             <label>Cantidad:</label>
                             <div className="quantity-controls">
-                                <button
-                                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                                    className="quantity-btn"
-                                >
+                                <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="quantity-btn">
                                     <i className="fa fa-minus" />
                                 </button>
                                 <span className="quantity-display">{quantity}</span>
-                                <button
-                                    onClick={() => setQuantity(quantity + 1)}
-                                    className="quantity-btn"
-                                >
+                                <button onClick={() => setQuantity(quantity + 1)} className="quantity-btn">
                                     <i className="fa fa-plus" />
                                 </button>
                             </div>
@@ -405,10 +340,7 @@ export const ProductPage = () => {
 
                         {/* Botón para evaluar producto */}
                         {user && user.userType === "buyer" && (
-                            <button
-                                className="btn-review-product"
-                                onClick={() => setShowReviewForm(true)}
-                            >
+                            <button className="btn-review-product" onClick={() => setShowReviewForm(true)}>
                                 <i className="fa fa-star" /> Evaluar Producto
                             </button>
                         )}
@@ -439,40 +371,26 @@ export const ProductPage = () => {
                         <div className="seller-header">
                             <div className="seller-avatar">
                                 {sellerInfo.avatar ? (
-                                    <img
-                                        src={sellerInfo.avatar}
-                                        alt={sellerInfo.businessName || sellerInfo.name}
-                                    />
+                                    <img src={sellerInfo.avatar} alt={sellerInfo.businessName || sellerInfo.name} />
                                 ) : (
                                     <i className="fa fa-store" />
                                 )}
                             </div>
                             <div className="seller-details">
                                 <h3>{sellerInfo.businessName || sellerInfo.name}</h3>
-                                {sellerInfo.role && (
-                                    <p className="seller-category">
-                                        {String(sellerInfo.role).toUpperCase()}
-                                    </p>
-                                )}
+                                {sellerInfo.role && <p className="seller-category">{String(sellerInfo.role).toUpperCase()}</p>}
                             </div>
                         </div>
 
                         <div className="seller-actions">
                             {/* Mantengo tu botón original */}
-                            <Link
-                                to={`/seller-profile/${sellerInfo.id || product.vendorId}`}
-                                className="btn-view-store"
-                            >
+                            <Link to={`/seller-profile/${sellerInfo.id || product.vendorId}`} className="btn-view-store">
                                 <i className="fa fa-eye" /> Ver Tienda Completa
                             </Link>
 
                             {/* Botón para evaluar TIENDA */}
                             {user && user.userType === "buyer" && isObjectId(sellerInfo.id) && (
-                                <button
-                                    onClick={() => setShowStoreReviewForm(true)}
-                                    className="btn-review-product"
-                                    style={{ marginLeft: 8 }}
-                                >
+                                <button onClick={() => setShowStoreReviewForm(true)} className="btn-review-product" style={{ marginLeft: 8 }}>
                                     <i className="fa fa-star" /> Evaluar Tienda
                                 </button>
                             )}
@@ -491,28 +409,18 @@ export const ProductPage = () => {
                                 <div className="review-header">
                                     <div className="reviewer-info">
                                         {review.userId?.avatar ? (
-                                            <img
-                                                src={review.userId.avatar}
-                                                alt={review.userId?.name}
-                                                className="review-avatar"
-                                            />
+                                            <img src={review.userId.avatar} alt={review.userId?.name} className="review-avatar" />
                                         ) : (
                                             <i className="fa fa-user-circle" />
                                         )}
                                         <span>{review.userId?.name || "Usuario"}</span>
                                     </div>
-                                    <div className="review-rating">
-                                        {renderStars(review.rating || 0)}
-                                    </div>
+                                    <div className="review-rating">{renderStars(review.rating || 0)}</div>
                                 </div>
                                 <div className="review-date">
-                                    {new Date(review.createdAt || review.date).toLocaleDateString(
-                                        "es-CR"
-                                    )}
+                                    {new Date(review.createdAt || review.date).toLocaleDateString("es-CR")}
                                 </div>
-                                {review.comment && (
-                                    <div className="review-comment">{review.comment}</div>
-                                )}
+                                {review.comment && <div className="review-comment">{review.comment}</div>}
                             </div>
                         ))}
                     </div>
@@ -532,26 +440,16 @@ export const ProductPage = () => {
                                     <div className="review-header">
                                         <div className="reviewer-info">
                                             {review.userId?.avatar ? (
-                                                <img
-                                                    src={review.userId.avatar}
-                                                    alt={review.userId?.name}
-                                                    className="review-avatar"
-                                                />
+                                                <img src={review.userId.avatar} alt={review.userId?.name} className="review-avatar" />
                                             ) : (
                                                 <i className="fa fa-user-circle" />
                                             )}
                                             <span>{review.userId?.name || "Usuario"}</span>
                                         </div>
-                                        <div className="review-rating">
-                                            {renderStars(review.rating || 0)}
-                                        </div>
+                                        <div className="review-rating">{renderStars(review.rating || 0)}</div>
                                     </div>
-                                    <div className="review-date">
-                                        {new Date(review.createdAt).toLocaleDateString("es-CR")}
-                                    </div>
-                                    {review.comment && (
-                                        <div className="review-comment">{review.comment}</div>
-                                    )}
+                                    <div className="review-date">{new Date(review.createdAt).toLocaleDateString("es-CR")}</div>
+                                    {review.comment && <div className="review-comment">{review.comment}</div>}
                                 </div>
                             ))}
                         </div>
@@ -574,10 +472,7 @@ export const ProductPage = () => {
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
                             <h2>Evaluar Producto</h2>
-                            <button
-                                onClick={() => setShowReviewForm(false)}
-                                className="modal-close"
-                            >
+                            <button onClick={() => setShowReviewForm(false)} className="modal-close">
                                 <i className="fa fa-times" />
                             </button>
                         </div>
@@ -597,17 +492,10 @@ export const ProductPage = () => {
                             </div>
                         </div>
                         <div className="modal-footer">
-                            <button
-                                onClick={() => setShowReviewForm(false)}
-                                className="btn-cancel"
-                            >
+                            <button onClick={() => setShowReviewForm(false)} className="btn-cancel">
                                 Cancelar
                             </button>
-                            <button
-                                onClick={handleSubmitReview}
-                                className="btn-submit"
-                                disabled={userRating === 0}
-                            >
+                            <button onClick={handleSubmitReview} className="btn-submit" disabled={userRating === 0}>
                                 Enviar Reseña
                             </button>
                         </div>
@@ -617,17 +505,11 @@ export const ProductPage = () => {
 
             {/* Modal para evaluar TIENDA */}
             {showStoreReviewForm && (
-                <div
-                    className="modal-overlay"
-                    onClick={() => setShowStoreReviewForm(false)}
-                >
+                <div className="modal-overlay" onClick={() => setShowStoreReviewForm(false)}>
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
                             <h2>Evaluar Tienda</h2>
-                            <button
-                                onClick={() => setShowStoreReviewForm(false)}
-                                className="modal-close"
-                            >
+                            <button onClick={() => setShowStoreReviewForm(false)} className="modal-close">
                                 <i className="fa fa-times" />
                             </button>
                         </div>
@@ -647,17 +529,10 @@ export const ProductPage = () => {
                             </div>
                         </div>
                         <div className="modal-footer">
-                            <button
-                                onClick={() => setShowStoreReviewForm(false)}
-                                className="btn-cancel"
-                            >
+                            <button onClick={() => setShowStoreReviewForm(false)} className="btn-cancel">
                                 Cancelar
                             </button>
-                            <button
-                                onClick={handleSubmitStoreReview}
-                                className="btn-submit"
-                                disabled={storeUserRating === 0}
-                            >
+                            <button onClick={handleSubmitStoreReview} className="btn-submit" disabled={storeUserRating === 0}>
                                 Enviar Reseña
                             </button>
                         </div>

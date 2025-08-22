@@ -170,33 +170,7 @@ export const BuyerDashboard = () => {
 
             {/* Contenido principal */}
             <div className="dashboard-content">
-                {/* Carrito actual */}
-                {cartItems.length > 0 && (
-                    <div className="section-card cart-section">
-                        <div className="section-header">
-                            <h2>🛒 Tu Carrito Actual</h2>
-                            <Link to="/cart" className="view-all-link">
-                                Ver carrito completo
-                            </Link>
-                        </div>
-                        <div className="cart-summary">
-                            <div className="cart-info">
-                                <span className="cart-count">{getTotalCartItems()} productos</span>
-                                <span className="cart-total">
-                                    Total: ₡{calculateCartTotal().toLocaleString()}
-                                </span>
-                            </div>
-                            <div className="cart-actions">
-                                <Link to="/cart" className="btn-view-cart">
-                                    Ver Carrito
-                                </Link>
-                                <Link to="/checkout" className="btn-checkout">
-                                    Finalizar Compra
-                                </Link>
-                            </div>
-                        </div>
-                    </div>
-                )}
+                
 
                 {/* Acciones rápidas */}
                 <div className="section-card quick-actions">
@@ -266,32 +240,7 @@ export const BuyerDashboard = () => {
                     </div>
                 </div>
 
-                {/* Productos recomendados */}
-                <div className="section-card recommendations">
-                    <div className="section-header">
-                        <h2>✨ Recomendado para Ti</h2>
-                        <Link to="/shop" className="view-all-link">
-                            Ver más
-                        </Link>
-                    </div>
-                    <div className="products-grid">
-                        {recommendedProducts.map((product) => (
-                            <Link key={product.id} to={`/product/${product.id}`} className="product-card">
-                                <div className="product-image">
-                                    {/* Si querés mostrar imagen real, agrega un <img src=...> y tu helper resolveImgUrl */}
-                                    <div className="product-image-sim"></div>
-                                </div>
-                                <div className="product-info">
-                                    <h3>{product.name}</h3>
-                                    <p className="product-category">{product.category}</p>
-                                    <p className="product-price">₡{Number(product.price).toLocaleString()}</p>
-                                </div>
-                            </Link>
-                        ))}
-                        {recommendedProducts.length === 0 && <p>No hay recomendaciones por ahora.</p>}
-                    </div>
-                </div>
-
+    
                 {/* Tips para compradores */}
                 <div className="section-card tips">
                     <h2>💡 Consejos para Compradores</h2>

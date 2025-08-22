@@ -22,9 +22,7 @@ import { BannerFullScreen } from '../components/ui/BannerFullScreen';
 import { BuyerDashboard } from '../pages/dashboards/BuyerDashboard';
 import { SellerDashboard } from '../pages/dashboards/SellerDashboard';
 
-
 import { SellerInventory } from '../pages/dashboards/SellerInventory';
-
 import { SellerOrders } from '../pages/dashboards/SellerOrders';
 import { SellerStoreProfile } from '../pages/dashboards/SellerStoreProfile';
 import { SellerAnalytics } from '../pages/dashboards/SellerAnalytics';
@@ -65,9 +63,9 @@ export const AppRouter = () => {
                             <Route
                                 path="/buyer/dashboard"
                                 element={
-                                    <BuyerRoute>
+                                    <AuthenticatedRoute>
                                         <BuyerDashboard />
-                                    </BuyerRoute>
+                                    </AuthenticatedRoute>
                                 }
                             />
                             <Route
@@ -79,45 +77,45 @@ export const AppRouter = () => {
                                 }
                             />
 
-                            {/* Comprador */}
+                            {/* Comprador (solo requiere sesión) */}
                             <Route
                                 path="/cart"
                                 element={
-                                    <BuyerRoute>
+                                    <AuthenticatedRoute>
                                         <CartPage />
-                                    </BuyerRoute>
+                                    </AuthenticatedRoute>
                                 }
                             />
                             <Route
                                 path="/checkout"
                                 element={
-                                    <BuyerRoute>
+                                    <AuthenticatedRoute>
                                         <CheckoutPage />
-                                    </BuyerRoute>
+                                    </AuthenticatedRoute>
                                 }
                             />
                             <Route
                                 path="/order-confirmation/:id?"
                                 element={
-                                    <BuyerRoute>
+                                    <AuthenticatedRoute>
                                         <OrderConfirmation />
-                                    </BuyerRoute>
+                                    </AuthenticatedRoute>
                                 }
                             />
                             <Route
                                 path="/orders"
                                 element={
-                                    <BuyerRoute>
+                                    <AuthenticatedRoute>
                                         <OrdersPage />
-                                    </BuyerRoute>
+                                    </AuthenticatedRoute>
                                 }
                             />
                             <Route
                                 path="/orders/:id"
                                 element={
-                                    <BuyerRoute>
+                                    <AuthenticatedRoute>
                                         <OrdersPage />
-                                    </BuyerRoute>
+                                    </AuthenticatedRoute>
                                 }
                             />
 

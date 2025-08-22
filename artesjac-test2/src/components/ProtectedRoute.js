@@ -1,9 +1,10 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../modules/auth/AuthContext';
 
 export const ProtectedRoute = ({ children, userType, redirectTo = '/login' }) => {
     const { isLoading, isAuthenticated, isBuyer, isSeller } = useAuth();
+    const location = useLocation();
 
     // Mostrar loading mientras se verifica la autenticación
     if (isLoading) {
@@ -24,21 +25,24 @@ export const ProtectedRoute = ({ children, userType, redirectTo = '/login' }) =>
         );
     }
 
-    // Si no está autenticado, redirigir al login
+    // Si no está autenticado, redirigir al login (guardando desde dónde venía)
     if (!isAuthenticated()) {
-        return <Navigate to={redirectTo} replace />;
+        return <Navigate to={redirectTo} replace state={{ from: location }} />;
     }
 
     // Si se especifica un tipo de usuario, verificar permisos
     if (userType) {
-        const hasPermission = 
-            (userType === 'buyer' && isBuyer()) ||
-            (userType === 'seller' && isSeller()) ||
-            (userType === 'any'); // Para rutas que acepta cualquier usuario autenticado
+        const hasPermission =
+            // ✅ buyer: permitir cualquier usuario autenticado (no restringe por rol)
+            (userType === 'buyer') ||
+            // seller: sí exige ser vendedor/admin según tus helpers actuales
+            (userType === 'seller' && isSeller && isSeller()) ||
+            // any: cualquier autenticado
+            (userType === 'any');
 
         if (!hasPermission) {
             // Redirigir al dashboard apropiado según su tipo de usuario
-            const appropriateDashboard = isBuyer() ? '/buyer/dashboard' : '/seller/dashboard';
+            const appropriateDashboard = (isSeller && isSeller()) ? '/seller/dashboard' : '/buyer/dashboard';
             return <Navigate to={appropriateDashboard} replace />;
         }
     }

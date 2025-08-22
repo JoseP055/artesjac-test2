@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../modules/auth/AuthContext';
+import { api } from '../api'; // ⬅️ para intentar cargar carrito del backend si existe
 import '../styles/checkout.css';
 
 export const CheckoutPage = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
+
     const [cartItems, setCartItems] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isProcessing, setIsProcessing] = useState(false);
@@ -50,18 +53,67 @@ export const CheckoutPage = () => {
 
     useEffect(() => {
         loadCartItems();
+        // Si venís de /cart con total en state, no hacemos nada extra:
+        // este componente recalcula el total desde las líneas.
+        // const incomingTotal = location.state?.total; // opcional
     }, []);
 
-    const loadCartItems = () => {
+    /** Normaliza items desde backend o localStorage al formato que usa tu UI:
+     * { id, name, numericPrice, quantity }
+     */
+    const normalizeItems = (raw) => {
+        if (!Array.isArray(raw)) return [];
+        return raw.map((it) => {
+            // Caso A: backend /cart => { productId: { _id, title, price }, quantity }
+            if (it?.productId && typeof it.productId === 'object') {
+                const p = it.productId;
+                return {
+                    id: p._id || p.id || it.id || String(Math.random()),
+                    name: p.title || p.name || 'Producto',
+                    numericPrice: Number(p.price || 0),
+                    quantity: Number(it.quantity || 1),
+                };
+            }
+            // Caso B: localStorage artesjac-cart => { id, name, numericPrice, quantity }
+            return {
+                id: it.id || String(Math.random()),
+                name: it.name || it.title || 'Producto',
+                numericPrice: Number(it.numericPrice ?? it.price ?? 0),
+                quantity: Number(it.quantity || 1),
+            };
+        }).filter(x => x.quantity > 0 && !Number.isNaN(x.numericPrice));
+    };
+
+    const loadCartItems = async () => {
         try {
+            setIsLoading(true);
+
+            // 1) Intentar backend
+            try {
+                const { data } = await api.get('/cart');
+                if (data?.ok && Array.isArray(data?.data?.items)) {
+                    const normalized = normalizeItems(data.data.items);
+                    if (normalized.length === 0) {
+                        navigate('/cart');
+                        return;
+                    }
+                    setCartItems(normalized);
+                    return; // listo
+                }
+            } catch {
+                // Ignorar error y caer a localStorage
+            }
+
+            // 2) Fallback: localStorage
             const savedCart = localStorage.getItem('artesjac-cart');
             if (savedCart && savedCart !== 'null') {
                 const cart = JSON.parse(savedCart);
-                if (cart.length === 0) {
+                const normalized = normalizeItems(cart);
+                if (normalized.length === 0) {
                     navigate('/cart');
                     return;
                 }
-                setCartItems(cart);
+                setCartItems(normalized);
             } else {
                 navigate('/cart');
                 return;
@@ -75,10 +127,7 @@ export const CheckoutPage = () => {
     };
 
     const handleShippingChange = (field, value) => {
-        setShippingData(prev => ({
-            ...prev,
-            [field]: value
-        }));
+        setShippingData(prev => ({ ...prev, [field]: value }));
     };
 
     const handlePaymentChange = (field, value) => {
@@ -92,30 +141,48 @@ export const CheckoutPage = () => {
                 }
             }));
         } else {
-            setPaymentData(prev => ({
-                ...prev,
-                [field]: value
-            }));
+            setPaymentData(prev => ({ ...prev, [field]: value }));
         }
     };
 
+    const validateEmail = (v) => /\S+@\S+\.\S+/.test(v);
+    const validatePhoneCR = (v) => /^\+?506?\s?-?\s?\d{4}\s?-?\s?\d{4}$|^\d{8}$/.test(v.trim());
+
     const validateStep1 = () => {
         const required = ['fullName', 'email', 'phone', 'address', 'city', 'province'];
-        return required.every(field => shippingData[field].trim() !== '');
+        const filled = required.every(field => String(shippingData[field] || '').trim() !== '');
+        if (!filled) return false;
+        if (!validateEmail(shippingData.email)) return false;
+        if (!validatePhoneCR(shippingData.phone)) return false;
+        return true;
     };
 
     const validateStep2 = () => {
         if (paymentData.method === 'card') {
             const required = ['cardNumber', 'expiryDate', 'cvv', 'cardName'];
-            return required.every(field => paymentData[field].trim() !== '');
+            const filled = required.every(field => String(paymentData[field] || '').trim() !== '');
+            if (!filled) return false;
+            // Validaciones básicas
+            const cardDigits = paymentData.cardNumber.replace(/\s+/g, '');
+            if (!/^\d{13,19}$/.test(cardDigits)) return false;
+            if (!/^\d{2}\/\d{2}$/.test(paymentData.expiryDate)) return false;
+            if (!/^\d{3,4}$/.test(paymentData.cvv)) return false;
+            return true;
         } else if (paymentData.method === 'bank_transfer') {
-            return paymentData.bankTransfer.bank !== '';
+            return String(paymentData.bankTransfer.bank || '').trim() !== '';
         }
-        return true; // Para efectivo
+        // cash (contra entrega) no requiere datos
+        return true;
     };
 
     const calculateSubtotal = () => {
-        return cartItems.reduce((total, item) => total + (item.numericPrice * item.quantity), 0);
+        const total = cartItems.reduce((acc, item) => {
+            const line = Number(item.numericPrice || 0) * Number(item.quantity || 0);
+            return acc + (Number.isFinite(line) ? line : 0);
+        }, 0);
+        return Number.isFinite(total) ? total : 0;
+        // Nota: si querés forzar el total del state que te pasó CartPage, podrías:
+        // return Number(location.state?.total ?? total) || 0;
     };
 
     const calculateShipping = () => {
@@ -128,17 +195,26 @@ export const CheckoutPage = () => {
     };
 
     const handleNextStep = () => {
-        if (currentStep === 1 && validateStep1()) {
+        if (currentStep === 1) {
+            if (!validateStep1()) {
+                alert('Revisá los datos de envío (correo/teléfono válidos).');
+                return;
+            }
             setCurrentStep(2);
-        } else if (currentStep === 2 && validateStep2()) {
+            return;
+        }
+        if (currentStep === 2) {
+            if (!validateStep2()) {
+                alert('Revisá los datos de pago.');
+                return;
+            }
             setCurrentStep(3);
+            return;
         }
     };
 
     const handlePreviousStep = () => {
-        if (currentStep > 1) {
-            setCurrentStep(currentStep - 1);
-        }
+        if (currentStep > 1) setCurrentStep(currentStep - 1);
     };
 
     const handleSubmitOrder = async () => {
@@ -146,11 +222,36 @@ export const CheckoutPage = () => {
             alert('Por favor completa todos los campos requeridos');
             return;
         }
-
         setIsProcessing(true);
 
         try {
-            // Simular procesamiento del pedido
+            // 1) Intentar crear pedido en backend (si existe endpoint)
+            try {
+                const payload = {
+                    customer: shippingData,
+                    payment: paymentData,
+                    items: cartItems.map(it => ({
+                        productId: it.id,
+                        quantity: it.quantity,
+                        price: it.numericPrice
+                    })),
+                    subtotal: calculateSubtotal(),
+                    shipping: calculateShipping(),
+                    total: calculateTotal(),
+                };
+                // Si tu backend tiene /orders:
+                const { data } = await api.post('/orders', payload);
+                if (data?.ok && data?.order?.id) {
+                    // Limpiar carrito (si tu backend lo maneja, igual limpiamos local)
+                    localStorage.setItem('artesjac-cart', JSON.stringify([]));
+                    navigate(`/order-confirmation/${data.order.id}`);
+                    return;
+                }
+            } catch {
+                // Si no hay backend o falla, caemos al flujo local
+            }
+
+            // 2) Flujo local (el tuyo, tal cual)
             await new Promise(resolve => setTimeout(resolve, 2000));
 
             const orderId = `ORD-${Date.now()}`;
@@ -166,15 +267,12 @@ export const CheckoutPage = () => {
                 status: 'pendiente'
             };
 
-            // Guardar pedido
-            const existingOrders = JSON.parse(localStorage.getItem(`buyer_orders_${user.id}`) || '[]');
+            const key = `buyer_orders_${user.id}`;
+            const existingOrders = JSON.parse(localStorage.getItem(key) || '[]');
             existingOrders.push(orderData);
-            localStorage.setItem(`buyer_orders_${user.id}`, JSON.stringify(existingOrders));
+            localStorage.setItem(key, JSON.stringify(existingOrders));
 
-            // Limpiar carrito
             localStorage.setItem('artesjac-cart', JSON.stringify([]));
-
-            // Redirigir a confirmación
             navigate(`/order-confirmation/${orderId}`);
 
         } catch (error) {
@@ -374,7 +472,7 @@ export const CheckoutPage = () => {
                                             <input
                                                 type="text"
                                                 value={paymentData.cardNumber}
-                                                onChange={(e) => handlePaymentChange('cardNumber', e.target.value)}
+                                                onChange={(e) => handlePaymentChange('cardNumber', e.target.value.replace(/[^\d\s]/g, ''))}
                                                 placeholder="1234 5678 9012 3456"
                                                 maxLength="19"
                                                 required
@@ -386,7 +484,7 @@ export const CheckoutPage = () => {
                                             <input
                                                 type="text"
                                                 value={paymentData.expiryDate}
-                                                onChange={(e) => handlePaymentChange('expiryDate', e.target.value)}
+                                                onChange={(e) => handlePaymentChange('expiryDate', e.target.value.replace(/[^\d/]/g, ''))}
                                                 placeholder="MM/AA"
                                                 maxLength="5"
                                                 required
@@ -398,7 +496,7 @@ export const CheckoutPage = () => {
                                             <input
                                                 type="text"
                                                 value={paymentData.cvv}
-                                                onChange={(e) => handlePaymentChange('cvv', e.target.value)}
+                                                onChange={(e) => handlePaymentChange('cvv', e.target.value.replace(/[^\d]/g, ''))}
                                                 placeholder="123"
                                                 maxLength="4"
                                                 required
@@ -493,7 +591,7 @@ export const CheckoutPage = () => {
                                     <h3>💳 Método de Pago</h3>
                                     <div className="confirmation-data">
                                         {paymentData.method === 'card' && (
-                                            <p>Tarjeta terminada en ****{paymentData.cardNumber.slice(-4)}</p>
+                                            <p>Tarjeta terminada en ****{(paymentData.cardNumber || '').replace(/\s+/g, '').slice(-4)}</p>
                                         )}
                                         {paymentData.method === 'bank_transfer' && (
                                             <p>Transferencia - {paymentData.bankTransfer.bank}</p>
@@ -511,7 +609,7 @@ export const CheckoutPage = () => {
                     <div className="checkout-navigation">
                         <div className="nav-buttons">
                             {currentStep > 1 && (
-                                <button onClick={handlePreviousStep} className="btn-previous">
+                                <button onClick={handlePreviousStep} className="btn-previous" type="button">
                                     <i className="fa fa-arrow-left"></i>
                                     Anterior
                                 </button>
@@ -521,6 +619,7 @@ export const CheckoutPage = () => {
                                 <button
                                     onClick={handleNextStep}
                                     className="btn-next"
+                                    type="button"
                                     disabled={(currentStep === 1 && !validateStep1()) || (currentStep === 2 && !validateStep2())}
                                 >
                                     Siguiente
@@ -530,6 +629,7 @@ export const CheckoutPage = () => {
                                 <button
                                     onClick={handleSubmitOrder}
                                     className="btn-place-order"
+                                    type="button"
                                     disabled={isProcessing}
                                 >
                                     {isProcessing ? (
@@ -562,7 +662,7 @@ export const CheckoutPage = () => {
                                         <span className="item-qty">x{item.quantity}</span>
                                     </div>
                                     <span className="item-total">
-                                        ₡{(item.numericPrice * item.quantity).toLocaleString()}
+                                        ₡{(Number(item.numericPrice || 0) * Number(item.quantity || 0)).toLocaleString()}
                                     </span>
                                 </div>
                             ))}
