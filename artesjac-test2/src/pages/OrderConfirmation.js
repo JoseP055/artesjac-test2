@@ -384,33 +384,7 @@ export const OrderConfirmation = () => {
                 </div>
             </section>
 
-            {/* Productos relacionados - solo si hay productos recomendados */}
-            <section className="related-products">
-                <h3>Te podría interesar</h3>
-                <div className="products-grid">
-                    <Link to="/product/5" className="related-product">
-                        <div className="product-image-sim">
-                            <i className="fa fa-image"></i>
-                        </div>
-                        <h4>Aretes de madera tallada</h4>
-                        <p>₡8.500</p>
-                    </Link>
-                    <Link to="/product/9" className="related-product">
-                        <div className="product-image-sim">
-                            <i className="fa fa-image"></i>
-                        </div>
-                        <h4>Pulsera de cuentas naturales</h4>
-                        <p>₡9.800</p>
-                    </Link>
-                    <Link to="/product/4" className="related-product">
-                        <div className="product-image-sim">
-                            <i className="fa fa-image"></i>
-                        </div>
-                        <h4>Vasija de cerámica tradicional</h4>
-                        <p>₡15.800</p>
-                    </Link>
-                </div>
-            </section>
+
         </main>
     );
 };

@@ -1,22 +1,47 @@
 // src/api/orders.service.js
-import { api } from "../api";
+import { api } from '../api';
 
 export const OrdersAPI = {
+    // Lista pedidos del vendedor desde ListaDePedidos
     list: async (params = {}) => {
-        const res = await api.get("/orders", { params });
-        return res.data; // { ok, data, total, page, limit }
+        const queryParams = new URLSearchParams();
+
+        if (params.page) queryParams.append('page', params.page);
+        if (params.limit) queryParams.append('limit', params.limit);
+        if (params.status && params.status !== 'all') queryParams.append('status', params.status);
+        if (params.q) queryParams.append('q', params.q);
+        if (params.sort) queryParams.append('sort', params.sort);
+
+        console.log('🔄 OrdersAPI.list llamando a:', `/seller-orders?${queryParams.toString()}`);
+        const response = await api.get(`/seller-orders?${queryParams.toString()}`);
+        console.log('📦 OrdersAPI.list respuesta:', response.data);
+        return response.data;
     },
-    get: async (id) => {
-        const res = await api.get(`/orders/${id}`);
-        return res.data; // { ok, data }
+
+    // Obtener estadísticas
+    getStats: async () => {
+        console.log('🔄 OrdersAPI.getStats llamando a:', '/seller-orders/stats');
+        const response = await api.get('/seller-orders/stats');
+        console.log('📊 OrdersAPI.getStats respuesta:', response.data);
+        return response.data;
     },
-    updateStatus: async (id, status, trackingNumber) => {
-        const res = await api.patch(`/orders/${id}/status`, { status, trackingNumber });
-        return res.data; // { ok, data }
+
+    // Actualizar estado de pedido
+    updateStatus: async (orderId, status, trackingNumber = null) => {
+        const payload = { status };
+        if (trackingNumber) payload.trackingNumber = trackingNumber;
+
+        console.log('🔄 OrdersAPI.updateStatus llamando a:', `/seller-orders/${orderId}/status`, payload);
+        const response = await api.put(`/seller-orders/${orderId}/status`, payload);
+        console.log('✅ OrdersAPI.updateStatus respuesta:', response.data);
+        return response.data;
     },
-    // Opcional: seed para pruebas
-    seedDev: async () => {
-        const res = await api.post("/orders/dev/seed");
-        return res.data;
-    },
+
+    // Obtener detalles de un pedido específico
+    getDetails: async (orderId) => {
+        console.log('🔄 OrdersAPI.getDetails llamando a:', `/seller-orders/${orderId}`);
+        const response = await api.get(`/seller-orders/${orderId}`);
+        console.log('📋 OrdersAPI.getDetails respuesta:', response.data);
+        return response.data;
+    }
 };
