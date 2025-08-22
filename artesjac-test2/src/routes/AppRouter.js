@@ -94,14 +94,18 @@ export const AppRouter = () => {
                                     </AuthenticatedRoute>
                                 }
                             />
+
+                            {/* Order Confirmation - Ruta actualizada para usar código de pedido */}
                             <Route
-                                path="/order-confirmation/:id?"
+                                path="/order-confirmation/:id"
                                 element={
                                     <AuthenticatedRoute>
                                         <OrderConfirmation />
                                     </AuthenticatedRoute>
                                 }
                             />
+
+                            {/* Orders */}
                             <Route
                                 path="/orders"
                                 element={

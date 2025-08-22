@@ -1,73 +1,84 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useAuth } from '../modules/auth/AuthContext';
+import { api } from '../api';
 import '../styles/order-confirmation.css';
 
 export const OrderConfirmation = () => {
-    const [searchParams] = useSearchParams();
+    const { id: orderCode } = useParams(); // código del pedido desde la URL
     const navigate = useNavigate();
+    const { user } = useAuth();
     const [orderData, setOrderData] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-    // Obtener datos del pedido - en un proyecto real vendría de la API
     useEffect(() => {
-        const orderId = searchParams.get('orderId') || 'ORD-' + Date.now().toString().slice(-6);
-        
-        // Simular una llamada a la API
-        setTimeout(() => {
-            const mockOrderData = {
-                orderId: orderId,
-                orderDate: new Date().toISOString(),
-                status: 'confirmado',
-                customer: {
-                    name: 'Ana María Rojas',
-                    email: 'ana.rojas@email.com',
-                    phone: '+506 8888-9999'
-                },
-                items: [
-                    {
-                        id: 1,
-                        name: 'Collar artesanal de semillas',
-                        price: 12000,
-                        quantity: 1,
-                        category: 'joyeria'
-                    },
-                    {
-                        id: 2,
-                        name: 'Bolso tejido a mano',
-                        price: 18500,
-                        quantity: 1,
-                        category: 'textil'
-                    }
-                ],
-                shipping: {
-                    address: 'Desamparados, San José, Costa Rica',
-                    method: 'Envío estándar',
-                    estimatedDelivery: '3-5 días hábiles',
-                    cost: 0 // Envío gratis
-                },
-                payment: {
-                    method: 'Tarjeta de crédito',
-                    last4: '****1234',
-                    subtotal: 30500,
-                    shipping: 0,
-                    total: 30500
-                }
-            };
-            
-            setOrderData(mockOrderData);
+        if (!user) {
+            navigate('/login');
+            return;
+        }
+        if (orderCode) {
+            loadOrderData(orderCode);
+        } else {
+            setError('Código de pedido no proporcionado');
             setIsLoading(false);
+        }
+    }, [orderCode, user, navigate]);
 
-            // Limpiar carrito después de confirmar pedido
-            localStorage.removeItem('artesjac-cart');
-        }, 1500);
-    }, [searchParams]);
+    const loadOrderData = async (code) => {
+        try {
+            setIsLoading(true);
+            setError(null);
+
+            console.log('🔍 Cargando pedido:', code);
+
+            const { data } = await api.get(`/buyer-orders/${code}`);
+
+            if (data?.ok && data?.data) {
+                console.log('✅ Pedido cargado:', data.data);
+                setOrderData(data.data);
+            } else {
+                setError('Pedido no encontrado');
+            }
+        } catch (error) {
+            console.error('💥 Error al cargar pedido:', error);
+            if (error.response?.status === 404) {
+                setError('Pedido no encontrado');
+            } else if (error.response?.status === 401) {
+                navigate('/login');
+                return;
+            } else {
+                setError('Error al cargar el pedido');
+            }
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const getPaymentMethodLabel = (method) => {
+        switch (method) {
+            case 'card': return 'Tarjeta de crédito';
+            case 'bank_transfer': return 'Transferencia bancaria';
+            case 'cash': return 'Efectivo contra entrega';
+            default: return method;
+        }
+    };
+
+    const formatDate = (dateString) => {
+        return new Date(dateString).toLocaleDateString('es-CR', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
 
     const handlePrintOrder = () => {
         window.print();
     };
 
     const handleDownloadPDF = () => {
-        // En un proyecto real, esto generaría un PDF
         alert('Funcionalidad de descarga PDF próximamente disponible');
     };
 
@@ -76,7 +87,7 @@ export const OrderConfirmation = () => {
     };
 
     const handleTrackOrder = () => {
-        navigate(`/orders/${orderData.orderId}`);
+        navigate(`/orders/${orderData.code}`);
     };
 
     if (isLoading) {
@@ -86,23 +97,30 @@ export const OrderConfirmation = () => {
                     <div className="loading-spinner">
                         <i className="fa fa-spinner fa-spin"></i>
                     </div>
-                    <h2>Procesando tu pedido...</h2>
-                    <p>Por favor espera mientras confirmamos tu compra</p>
+                    <h2>Cargando información del pedido...</h2>
+                    <p>Por favor espera mientras obtenemos los detalles</p>
                 </div>
             </main>
         );
     }
 
-    if (!orderData) {
+    if (error || !orderData) {
         return (
             <main className="confirmation-container">
                 <div className="error-state">
                     <i className="fa fa-exclamation-triangle"></i>
-                    <h2>Error al procesar el pedido</h2>
-                    <p>Ha ocurrido un problema. Por favor contacta a soporte.</p>
-                    <Link to="/shop" className="btn-back-shop">
-                        Volver a la tienda
-                    </Link>
+                    <h2>Error al cargar el pedido</h2>
+                    <p>{error || 'No se pudo encontrar el pedido solicitado'}</p>
+                    <div className="error-actions">
+                        <Link to="/orders" className="btn-back-shop">
+                            <i className="fa fa-list"></i>
+                            Ver mis pedidos
+                        </Link>
+                        <Link to="/shop" className="btn-back-shop">
+                            <i className="fa fa-shopping-bag"></i>
+                            Volver a la tienda
+                        </Link>
+                    </div>
                 </div>
             </main>
         );
@@ -118,7 +136,10 @@ export const OrderConfirmation = () => {
                 <h1>¡Pedido confirmado!</h1>
                 <p>Gracias por tu compra en ArtesJAC</p>
                 <div className="order-number">
-                    <span>Número de pedido: <strong>#{orderData.orderId}</strong></span>
+                    <span>Número de pedido: <strong>#{orderData.code}</strong></span>
+                </div>
+                <div className="order-date">
+                    <span>Fecha: {formatDate(orderData.date)}</span>
                 </div>
             </section>
 
@@ -141,7 +162,7 @@ export const OrderConfirmation = () => {
                                     <p>Te hemos enviado los detalles del pedido a <strong>{orderData.customer.email}</strong></p>
                                 </div>
                             </div>
-                            
+
                             <div className="step">
                                 <div className="step-icon">
                                     <i className="fa fa-box"></i>
@@ -151,7 +172,7 @@ export const OrderConfirmation = () => {
                                     <p>Nuestros artesanos prepararán cuidadosamente tus productos</p>
                                 </div>
                             </div>
-                            
+
                             <div className="step">
                                 <div className="step-icon">
                                     <i className="fa fa-truck"></i>
@@ -175,6 +196,9 @@ export const OrderConfirmation = () => {
                             <p>{orderData.shipping.address}</p>
                             <p><strong>Método de envío:</strong> {orderData.shipping.method}</p>
                             <p><strong>Tiempo estimado:</strong> {orderData.shipping.estimatedDelivery}</p>
+                            {orderData.shipping.tracking && (
+                                <p><strong>Código de seguimiento:</strong> {orderData.shipping.tracking}</p>
+                            )}
                         </div>
                     </div>
 
@@ -185,9 +209,12 @@ export const OrderConfirmation = () => {
                             Información de contacto
                         </h3>
                         <div className="contact-details">
-                            <p><strong>Nombre:</strong> {orderData.customer.name}</p>
+                            <p><strong>Nombre:</strong> {orderData.customer.fullName}</p>
                             <p><strong>Email:</strong> {orderData.customer.email}</p>
                             <p><strong>Teléfono:</strong> {orderData.customer.phone}</p>
+                            {orderData.customer.specialInstructions && (
+                                <p><strong>Instrucciones especiales:</strong> {orderData.customer.specialInstructions}</p>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -199,19 +226,34 @@ export const OrderConfirmation = () => {
                             <i className="fa fa-shopping-bag"></i>
                             Resumen del pedido
                         </h3>
-                        
+
                         <div className="order-items">
-                            {orderData.items.map(item => (
-                                <div key={item.id} className="order-item">
+                            {orderData.items.map((item, index) => (
+                                <div key={item.productId || index} className="order-item">
                                     <div className="item-image">
-                                        <div className="product-image-sim"></div>
+                                        {item.productDetails?.images?.length > 0 ? (
+                                            <img
+                                                src={item.productDetails.images[0]}
+                                                alt={item.name}
+                                                onError={(e) => {
+                                                    e.target.style.display = 'none';
+                                                    e.target.nextSibling.style.display = 'flex';
+                                                }}
+                                            />
+                                        ) : null}
+                                        <div className="product-image-sim" style={{ display: item.productDetails?.images?.length > 0 ? 'none' : 'flex' }}>
+                                            <i className="fa fa-image"></i>
+                                        </div>
                                     </div>
                                     <div className="item-details">
                                         <h4>{item.name}</h4>
                                         <p className="item-category">
-                                            {item.category.charAt(0).toUpperCase() + item.category.slice(1)}
+                                            {item.category ? item.category.charAt(0).toUpperCase() + item.category.slice(1) : 'Producto'}
                                         </p>
                                         <p className="item-quantity">Cantidad: {item.quantity}</p>
+                                        {item.sellerDetails && (
+                                            <p className="item-seller">Vendedor: {item.sellerDetails.name}</p>
+                                        )}
                                     </div>
                                     <div className="item-price">
                                         ₡{(item.price * item.quantity).toLocaleString()}
@@ -227,7 +269,9 @@ export const OrderConfirmation = () => {
                             </div>
                             <div className="total-row">
                                 <span>Envío:</span>
-                                <span>{orderData.payment.shipping === 0 ? 'Gratis' : `₡${orderData.payment.shipping.toLocaleString()}`}</span>
+                                <span>
+                                    {orderData.payment.shipping === 0 ? 'Gratis' : `₡${orderData.payment.shipping.toLocaleString()}`}
+                                </span>
                             </div>
                             <div className="total-row final">
                                 <span>Total pagado:</span>
@@ -240,7 +284,11 @@ export const OrderConfirmation = () => {
                                 <i className="fa fa-credit-card"></i>
                                 Método de pago
                             </h4>
-                            <p>{orderData.payment.method} terminada en {orderData.payment.last4}</p>
+                            <p>
+                                {getPaymentMethodLabel(orderData.payment.method)}
+                                {orderData.payment.cardLast4 && ` terminada en ****${orderData.payment.cardLast4}`}
+                                {orderData.payment.bankName && ` - ${orderData.payment.bankName}`}
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -249,15 +297,15 @@ export const OrderConfirmation = () => {
             {/* Acciones principales */}
             <section className="confirmation-actions">
                 <div className="action-buttons">
-                    <button 
+                    <button
                         className="btn-primary"
                         onClick={handleTrackOrder}
                     >
                         <i className="fa fa-search"></i>
                         Rastrear pedido
                     </button>
-                    
-                    <button 
+
+                    <button
                         className="btn-secondary"
                         onClick={handleContinueShopping}
                     >
@@ -267,21 +315,50 @@ export const OrderConfirmation = () => {
                 </div>
 
                 <div className="utility-buttons">
-                    <button 
+                    <button
                         className="btn-utility"
                         onClick={handlePrintOrder}
                     >
                         <i className="fa fa-print"></i>
                         Imprimir
                     </button>
-                    
-                    <button 
+
+                    <button
                         className="btn-utility"
                         onClick={handleDownloadPDF}
                     >
                         <i className="fa fa-download"></i>
                         Descargar PDF
                     </button>
+                </div>
+            </section>
+
+            {/* Información de estado del pedido */}
+            <section className="order-status-section">
+                <div className="status-card">
+                    <h3>Estado del pedido</h3>
+                    <div className={`status-badge status-${orderData.status}`}>
+                        <i className="fa fa-check-circle"></i>
+                        <span>{orderData.status.charAt(0).toUpperCase() + orderData.status.slice(1)}</span>
+                    </div>
+                    <div className="status-timeline">
+                        <div className={`timeline-step ${['confirmado', 'en_proceso', 'enviado', 'entregado'].includes(orderData.status) ? 'completed' : ''}`}>
+                            <i className="fa fa-check"></i>
+                            <span>Confirmado</span>
+                        </div>
+                        <div className={`timeline-step ${['en_proceso', 'enviado', 'entregado'].includes(orderData.status) ? 'completed' : ''}`}>
+                            <i className="fa fa-cog"></i>
+                            <span>En proceso</span>
+                        </div>
+                        <div className={`timeline-step ${['enviado', 'entregado'].includes(orderData.status) ? 'completed' : ''}`}>
+                            <i className="fa fa-truck"></i>
+                            <span>Enviado</span>
+                        </div>
+                        <div className={`timeline-step ${orderData.status === 'entregado' ? 'completed' : ''}`}>
+                            <i className="fa fa-home"></i>
+                            <span>Entregado</span>
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -307,22 +384,28 @@ export const OrderConfirmation = () => {
                 </div>
             </section>
 
-            {/* Productos relacionados */}
+            {/* Productos relacionados - solo si hay productos recomendados */}
             <section className="related-products">
                 <h3>Te podría interesar</h3>
                 <div className="products-grid">
                     <Link to="/product/5" className="related-product">
-                        <div className="product-image-sim"></div>
+                        <div className="product-image-sim">
+                            <i className="fa fa-image"></i>
+                        </div>
                         <h4>Aretes de madera tallada</h4>
                         <p>₡8.500</p>
                     </Link>
                     <Link to="/product/9" className="related-product">
-                        <div className="product-image-sim"></div>
+                        <div className="product-image-sim">
+                            <i className="fa fa-image"></i>
+                        </div>
                         <h4>Pulsera de cuentas naturales</h4>
                         <p>₡9.800</p>
                     </Link>
                     <Link to="/product/4" className="related-product">
-                        <div className="product-image-sim"></div>
+                        <div className="product-image-sim">
+                            <i className="fa fa-image"></i>
+                        </div>
                         <h4>Vasija de cerámica tradicional</h4>
                         <p>₡15.800</p>
                     </Link>

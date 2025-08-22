@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../modules/auth/AuthContext';
-import { api } from '../api'; // ⬅️ para intentar cargar carrito del backend si existe
+import { api } from '../api';
 import '../styles/checkout.css';
 
 export const CheckoutPage = () => {
@@ -53,18 +53,11 @@ export const CheckoutPage = () => {
 
     useEffect(() => {
         loadCartItems();
-        // Si venís de /cart con total en state, no hacemos nada extra:
-        // este componente recalcula el total desde las líneas.
-        // const incomingTotal = location.state?.total; // opcional
     }, []);
 
-    /** Normaliza items desde backend o localStorage al formato que usa tu UI:
-     * { id, name, numericPrice, quantity }
-     */
     const normalizeItems = (raw) => {
         if (!Array.isArray(raw)) return [];
         return raw.map((it) => {
-            // Caso A: backend /cart => { productId: { _id, title, price }, quantity }
             if (it?.productId && typeof it.productId === 'object') {
                 const p = it.productId;
                 return {
@@ -72,14 +65,15 @@ export const CheckoutPage = () => {
                     name: p.title || p.name || 'Producto',
                     numericPrice: Number(p.price || 0),
                     quantity: Number(it.quantity || 1),
+                    category: p.category || ''
                 };
             }
-            // Caso B: localStorage artesjac-cart => { id, name, numericPrice, quantity }
             return {
                 id: it.id || String(Math.random()),
                 name: it.name || it.title || 'Producto',
                 numericPrice: Number(it.numericPrice ?? it.price ?? 0),
                 quantity: Number(it.quantity || 1),
+                category: it.category || ''
             };
         }).filter(x => x.quantity > 0 && !Number.isNaN(x.numericPrice));
     };
@@ -88,7 +82,6 @@ export const CheckoutPage = () => {
         try {
             setIsLoading(true);
 
-            // 1) Intentar backend
             try {
                 const { data } = await api.get('/cart');
                 if (data?.ok && Array.isArray(data?.data?.items)) {
@@ -98,13 +91,12 @@ export const CheckoutPage = () => {
                         return;
                     }
                     setCartItems(normalized);
-                    return; // listo
+                    return;
                 }
             } catch {
-                // Ignorar error y caer a localStorage
+                // Fallback a localStorage
             }
 
-            // 2) Fallback: localStorage
             const savedCart = localStorage.getItem('artesjac-cart');
             if (savedCart && savedCart !== 'null') {
                 const cart = JSON.parse(savedCart);
@@ -162,7 +154,6 @@ export const CheckoutPage = () => {
             const required = ['cardNumber', 'expiryDate', 'cvv', 'cardName'];
             const filled = required.every(field => String(paymentData[field] || '').trim() !== '');
             if (!filled) return false;
-            // Validaciones básicas
             const cardDigits = paymentData.cardNumber.replace(/\s+/g, '');
             if (!/^\d{13,19}$/.test(cardDigits)) return false;
             if (!/^\d{2}\/\d{2}$/.test(paymentData.expiryDate)) return false;
@@ -171,7 +162,6 @@ export const CheckoutPage = () => {
         } else if (paymentData.method === 'bank_transfer') {
             return String(paymentData.bankTransfer.bank || '').trim() !== '';
         }
-        // cash (contra entrega) no requiere datos
         return true;
     };
 
@@ -181,8 +171,6 @@ export const CheckoutPage = () => {
             return acc + (Number.isFinite(line) ? line : 0);
         }, 0);
         return Number.isFinite(total) ? total : 0;
-        // Nota: si querés forzar el total del state que te pasó CartPage, podrías:
-        // return Number(location.state?.total ?? total) || 0;
     };
 
     const calculateShipping = () => {
@@ -224,59 +212,44 @@ export const CheckoutPage = () => {
         }
         setIsProcessing(true);
 
+        console.log('🛒 Iniciando proceso de pedido...');
+
         try {
-            // 1) Intentar crear pedido en backend (si existe endpoint)
-            try {
-                const payload = {
-                    customer: shippingData,
-                    payment: paymentData,
-                    items: cartItems.map(it => ({
-                        productId: it.id,
-                        quantity: it.quantity,
-                        price: it.numericPrice
-                    })),
-                    subtotal: calculateSubtotal(),
-                    shipping: calculateShipping(),
-                    total: calculateTotal(),
-                };
-                // Si tu backend tiene /orders:
-                const { data } = await api.post('/orders', payload);
-                if (data?.ok && data?.order?.id) {
-                    // Limpiar carrito (si tu backend lo maneja, igual limpiamos local)
-                    localStorage.setItem('artesjac-cart', JSON.stringify([]));
-                    navigate(`/order-confirmation/${data.order.id}`);
-                    return;
-                }
-            } catch {
-                // Si no hay backend o falla, caemos al flujo local
-            }
-
-            // 2) Flujo local (el tuyo, tal cual)
-            await new Promise(resolve => setTimeout(resolve, 2000));
-
-            const orderId = `ORD-${Date.now()}`;
-            const orderData = {
-                id: orderId,
-                date: new Date().toISOString(),
+            const payload = {
                 customer: shippingData,
                 payment: paymentData,
                 items: cartItems,
                 subtotal: calculateSubtotal(),
                 shipping: calculateShipping(),
                 total: calculateTotal(),
-                status: 'pendiente'
             };
 
-            const key = `buyer_orders_${user.id}`;
-            const existingOrders = JSON.parse(localStorage.getItem(key) || '[]');
-            existingOrders.push(orderData);
-            localStorage.setItem(key, JSON.stringify(existingOrders));
+            console.log('📦 Enviando pedido al servidor...');
 
-            localStorage.setItem('artesjac-cart', JSON.stringify([]));
-            navigate(`/order-confirmation/${orderId}`);
+            const { data } = await api.post('/buyer-orders', payload);
+            console.log('✅ Respuesta del servidor:', data);
+
+            if (data?.ok && data?.order?.code) {
+                console.log('🎉 Pedido creado exitosamente:', data.order.code);
+
+                // Limpiar carrito local y del backend
+                localStorage.setItem('artesjac-cart', JSON.stringify([]));
+                try {
+                    await api.delete('/cart');
+                    console.log('🧹 Carrito backend limpiado');
+                } catch (cartError) {
+                    console.log('⚠️ No se pudo limpiar carrito backend:', cartError.message);
+                }
+
+                // Navegar a la confirmación con el código del pedido
+                navigate(`/order-confirmation/${data.order.code}`);
+                return;
+            } else {
+                throw new Error('Respuesta del servidor no válida');
+            }
 
         } catch (error) {
-            console.error('Error al procesar pedido:', error);
+            console.error('💥 Error al crear pedido:', error);
             alert('Error al procesar el pedido. Por favor intenta de nuevo.');
         } finally {
             setIsProcessing(false);
