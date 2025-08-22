@@ -160,6 +160,7 @@
 .cart-item {
     display: grid;
     grid-template-columns: 100px 1fr auto auto auto;
+    /* 1ra col = 100px */
     gap: 1rem;
     align-items: center;
     background: #2a2a2a;
@@ -175,11 +176,24 @@
     box-shadow: 0 4px 20px rgba(255, 87, 34, 0.1);
 }
 
+/* Imagen del producto: 100x100 siempre */
 .item-image {
-    width: 80px;
-    height: 80px;
+    width: 100px;
+    height: 100px;
+    overflow: hidden;
+    border-radius: 6px;
 }
 
+/* Asegura que <img> llene el contenedor sin deformarse */
+.item-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    border-radius: 6px;
+}
+
+/* Placeholder cuando no hay imagen */
 .product-image-sim {
     width: 100%;
     height: 100%;
@@ -430,8 +444,9 @@
         gap: 2rem;
     }
 
+    /* Mantener 100px para imágenes también en tablet */
     .cart-item {
-        grid-template-columns: 60px 1fr auto;
+        grid-template-columns: 100px 1fr auto;
         gap: 0.75rem;
         padding: 1rem;
     }
@@ -478,8 +493,9 @@
         padding: 1rem;
     }
 
+    /* Mantener 100px en móvil (si querés más compacto, bajalo aquí) */
     .cart-item {
-        grid-template-columns: 50px 1fr;
+        grid-template-columns: 100px 1fr;
         grid-template-rows: auto auto auto;
     }
 
