@@ -288,10 +288,6 @@ export const ShopPage = () => {
             <div className="cart-indicator">
                 <div className="cart-indicator-info">
                     <i className="fa fa-shopping-cart"></i>
-                    <span>
-                        {getTotalCartItems()} producto{getTotalCartItems() !== 1 ? "s" : ""} en el carrito -{" "}
-                        Total: {fmtCRC(calculateCartTotal())}
-                    </span>
                 </div>
                 <Link to="/cart" className="view-cart-btn">
                     <i className="fa fa-arrow-right"></i> Ver Carrito
